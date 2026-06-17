@@ -8,7 +8,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:routes": "node scripts/smoke-test-routes.mjs",
-    "verify": "npm run build && npm run typecheck"
+    "verify": "npm run build && npm run typecheck",
+    "scan:legacy": "node scripts/scan-legacy-terms.mjs",
+    "check": "npm run verify && npm run scan:legacy"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
