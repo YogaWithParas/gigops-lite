@@ -51,6 +51,49 @@ npm run typecheck
 npm run build
 ```
 
+## Backend Smoke Test (v0.3a)
+
+This smoke test assumes the backend is already running locally at:
+
+```text
+http://localhost:4000
+```
+
+Run it from the api folder:
+
+```bash
+cd api
+npm run smoke:test
+```
+
+Optional custom base URL:
+
+```bash
+BASE_URL=http://localhost:4000 npm run smoke:test
+```
+
+On Windows PowerShell:
+
+```powershell
+cd api
+$env:BASE_URL='http://localhost:4000'
+npm run smoke:test
+```
+
+What it validates:
+
+- GET /health returns 200
+- GET /jobs?page=1&limit=10 returns 200 with requestId and pagination metadata
+- GET /tasks?page=1&limit=10 returns 200 with requestId and pagination metadata
+- GET /agents returns 200 with requestId
+- GET /audit returns 200 with requestId
+- POST /jobs first request returns 201 with Idempotency-Key
+- POST /jobs replay with same key and same payload returns 200 with same job id and meta.idempotentReplay=true
+- POST /jobs replay with same key and different payload returns 409 conflict-style error envelope
+- POST /tasks/TASK-2002/assign assigns task to AG-002
+
+Reminder: this API is still in-memory/mock and resets state on restart.
+
 ## Response Envelope
 
 Success:

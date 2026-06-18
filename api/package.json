@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke:test": "node scripts/smoke-test-api.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
