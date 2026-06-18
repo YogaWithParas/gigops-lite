@@ -24,6 +24,41 @@ Clients create work
 
 This repository is currently a frontend + mock API prototype.
 
+## v0.2 Backend API Milestone
+
+GigOps Lite now includes a standalone Express + TypeScript API service under `api/`.
+
+Implemented in v0.2:
+
+* `GET /health`
+* `GET /jobs?page=1&limit=10`
+* `POST /jobs`
+* `GET /tasks?page=1&limit=10`
+* `POST /tasks/:id/assign`
+* `GET /agents`
+* `GET /audit`
+* Request IDs in every response
+* Pagination metadata for list endpoints
+* Structured error responses
+* Zod validation
+* Idempotency simulation for `POST /jobs`
+* Task assignment simulation with `POST /tasks/:id/assign`
+
+Validated locally:
+
+* `POST /jobs` creates a job on first request
+* Replaying the same `Idempotency-Key` with the same payload returns the same job without duplication
+* Reusing the same `Idempotency-Key` with a different payload returns an idempotency conflict
+* `POST /tasks/TASK-2002/assign` assigns a task to agent `AG-002`
+
+Still mock/planned:
+
+* Firestore persistence
+* Auth0 RBAC
+* Pub/Sub events
+* GCP Cloud Run deployment
+* Production observability
+
 ### Implemented Now
 
 * Next.js App Router frontend
