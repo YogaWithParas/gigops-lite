@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { jobs } from "@/lib/gig-data"
+import { getJobs } from "@/lib/api-client"
 import type { JobBatch, JobStatus, JobType, Priority } from "@/lib/types"
 import { BriefcaseBusiness, CalendarDays, CircleCheckBig, Layers3 } from "lucide-react"
 
@@ -38,7 +38,7 @@ function statusTone(status: JobStatus) {
 
 function seedJob(): JobBatch {
   return {
-    id: `JOB-${1000 + jobs.length + 1}`,
+    id: "JOB-NEW",
     clientName: "New synthetic client",
     title: "Prototype intake batch",
     type: "cx",
@@ -55,14 +55,38 @@ function seedJob(): JobBatch {
 }
 
 export default function JobsPage() {
+  const [jobsData, setJobsData] = useState<JobBatch[]>([])
   const [draft, setDraft] = useState(seedJob())
-  const [selectedJobId, setSelectedJobId] = useState(jobs[0]?.id ?? "")
+  const [selectedJobId, setSelectedJobId] = useState("")
 
-  const selectedJob = useMemo(() => jobs.find((job) => job.id === selectedJobId) ?? jobs[0], [selectedJobId])
+  useEffect(() => {
+    let cancelled = false
 
-  const activeJobs = jobs.filter((job) => job.status !== "complete").length
-  const jobsInQa = jobs.filter((job) => job.status === "qa").length
-  const dueSoon = jobs.filter((job) => job.priority === "urgent" || job.priority === "high").length
+    async function loadJobs() {
+      try {
+        const nextJobs = await getJobs()
+        if (cancelled) return
+
+        setJobsData(nextJobs)
+        setSelectedJobId((current) => (current ? current : nextJobs[0]?.id ?? ""))
+      } catch (error) {
+        if (cancelled) return
+        console.error("Failed to load jobs", error)
+      }
+    }
+
+    loadJobs()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const selectedJob = useMemo(() => jobsData.find((job) => job.id === selectedJobId) ?? jobsData[0], [selectedJobId, jobsData])
+
+  const activeJobs = jobsData.filter((job) => job.status !== "complete").length
+  const jobsInQa = jobsData.filter((job) => job.status === "qa").length
+  const dueSoon = jobsData.filter((job) => job.priority === "urgent" || job.priority === "high").length
 
   return (
     <>
@@ -77,7 +101,7 @@ export default function JobsPage() {
         <StatCard label="Active batches" value={activeJobs} hint="Non-complete jobs" icon={BriefcaseBusiness} />
         <StatCard label="QA batches" value={jobsInQa} hint="Waiting on review" icon={Layers3} />
         <StatCard label="Urgent or high priority" value={dueSoon} hint="Require close attention" icon={CalendarDays} />
-        <StatCard label="Synthetic batches" value={jobs.length} hint="All mocked from memory" icon={CircleCheckBig} />
+        <StatCard label="Synthetic batches" value={jobsData.length} hint="All mocked from memory" icon={CircleCheckBig} />
       </section>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -87,7 +111,7 @@ export default function JobsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {jobs.map((job) => (
+              {jobsData.map((job) => (
                 <button
                   key={job.id}
                   type="button"
