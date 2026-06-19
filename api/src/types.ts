@@ -17,7 +17,7 @@ export interface Task {
   jobId: string;
   title: string;
   priority: Priority;
-  status: "queued" | "assigned" | "in_review" | "approved";
+  status: "queued" | "assigned" | "in_review" | "approved" | "correction_needed" | "escalated";
   assignedAgentId?: string;
   createdAt: string;
 }

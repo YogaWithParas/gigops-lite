@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { gigWorkers } from "@/lib/gig-data"
-import { assignTask, getAgents, getTasks } from "@/lib/api-client"
+import { assignTask, getAgents, getTasks, updateTaskLifecycleStatus } from "@/lib/api-client"
 import { rankWorkersForTask } from "@/lib/gig-ops"
 import type { GigWorker, TaskItem } from "@/lib/types"
 import { CheckCircle2, ListTodo, RotateCcw, Sparkles, UsersRound } from "lucide-react"
@@ -35,6 +35,7 @@ export default function TasksPage() {
   const [selectedAgentId, setSelectedAgentId] = useState("")
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const [isAssigning, setIsAssigning] = useState(false)
+  const [isUpdatingLifecycle, setIsUpdatingLifecycle] = useState(false)
   const [assignmentError, setAssignmentError] = useState("")
   const [assignmentMessage, setAssignmentMessage] = useState("")
 
@@ -117,6 +118,30 @@ export default function TasksPage() {
   const assignedTasks = tasksData.filter((task) => task.status === "assigned" || task.status === "in_review").length
   const doneTasks = tasksData.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
 
+  const canStartReview = Boolean(
+    selectedTask?.assignedWorkerId &&
+      (selectedTask.status === "assigned" || selectedTask.status === "correction_needed" || selectedTask.status === "escalated"),
+  )
+  const canApprove = Boolean(
+    selectedTask?.assignedWorkerId && (selectedTask.status === "assigned" || selectedTask.status === "in_review"),
+  )
+  const canCorrectionNeeded = Boolean(
+    selectedTask?.assignedWorkerId && (selectedTask.status === "assigned" || selectedTask.status === "in_review"),
+  )
+  const canEscalate = Boolean(
+    selectedTask?.assignedWorkerId &&
+      (selectedTask.status === "assigned" || selectedTask.status === "in_review" || selectedTask.status === "correction_needed"),
+  )
+
+  const lifecycleActionBlockedReason = useMemo(() => {
+    if (!selectedTask) return "Select a task to see lifecycle actions."
+    if (!selectedTask.assignedWorkerId) return "Assign an agent before moving this task through review lifecycle actions."
+    if (!canStartReview && !canApprove && !canCorrectionNeeded && !canEscalate) {
+      return "No lifecycle action is available from the current status."
+    }
+    return ""
+  }, [canApprove, canCorrectionNeeded, canEscalate, canStartReview, selectedTask])
+
   async function runAssignment(nextAgentId: string | null) {
     if (!selectedTask) return
 
@@ -164,6 +189,32 @@ export default function TasksPage() {
   async function handleUnassign() {
     if (!selectedTask?.assignedWorkerId) return
     await runAssignment(null)
+  }
+
+  async function runLifecycleAction(
+    status: "in_review" | "approved" | "correction_needed" | "escalated",
+    label: string,
+  ) {
+    if (!selectedTask) return
+
+    setIsUpdatingLifecycle(true)
+    setAssignmentError("")
+    setAssignmentMessage("")
+
+    try {
+      const updatedTask = await updateTaskLifecycleStatus(selectedTask.id, status)
+      setTasksData((current) => current.map((task) => (task.id === updatedTask.id ? { ...task, ...updatedTask } : task)))
+
+      setAssignmentMessage(
+        isBackendMode
+          ? `${label} for ${selectedTask.id} via the standalone backend.`
+          : `Mock fallback mode ${label.toLowerCase()} for ${selectedTask.id} locally only.`,
+      )
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : "Task lifecycle action failed")
+    } finally {
+      setIsUpdatingLifecycle(false)
+    }
   }
 
   return (
@@ -222,13 +273,57 @@ export default function TasksPage() {
               <p className="text-xs text-muted-foreground">{selectedTask?.assignedWorkerId ?? "No agent linked"}</p>
             </div>
             <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Lifecycle actions</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">Current status:</p>
+                <Badge className={selectedTask ? statusStyle(selectedTask.status) : "bg-secondary text-secondary-foreground"}>
+                  {selectedTask?.status.replace("_", " ") ?? "unknown"}
+                </Badge>
+              </div>
+              {lifecycleActionBlockedReason ? <p className="text-xs text-muted-foreground">{lifecycleActionBlockedReason}</p> : null}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runLifecycleAction("in_review", "Started review")}
+                  disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || !canStartReview}
+                >
+                  Start review
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runLifecycleAction("approved", "Marked approved")}
+                  disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || !canApprove}
+                >
+                  Mark approved
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runLifecycleAction("correction_needed", "Marked correction needed")}
+                  disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || !canCorrectionNeeded}
+                >
+                  Correction needed
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runLifecycleAction("escalated", "Marked escalated")}
+                  disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || !canEscalate}
+                >
+                  Mark escalated
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Assignment target (manual override)</p>
               <select
                 aria-label="Assignment target manual override"
                 value={selectedAgentId}
                 onChange={(event) => setSelectedAgentId(event.target.value)}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={isLoadingTasks || isAssigning || rankedAgents.length === 0}
+                disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || rankedAgents.length === 0}
               >
                 {rankedAgents.length === 0 ? <option value="">No agents available for recommendation.</option> : null}
                 {ranked.map((entry) => (
@@ -260,16 +355,16 @@ export default function TasksPage() {
               <Button
                 className="flex-1"
                 onClick={handleAssignOrReassign}
-                disabled={isLoadingTasks || !selectedTask || !selectedAgentId || isAssigning || selectedTask.assignedWorkerId === selectedAgentId}
+                disabled={isLoadingTasks || !selectedTask || !selectedAgentId || isAssigning || isUpdatingLifecycle || selectedTask.assignedWorkerId === selectedAgentId}
               >
                 <Sparkles className="size-4" aria-hidden="true" />
-                {isAssigning ? "Saving..." : isLoadingTasks ? "Loading..." : selectedTask?.assignedWorkerId ? "Reassign" : "Assign"}
+                {isAssigning || isUpdatingLifecycle ? "Saving..." : isLoadingTasks ? "Loading..." : selectedTask?.assignedWorkerId ? "Reassign" : "Assign"}
               </Button>
               <Button
                 variant="outline"
                 className="flex-1"
                 onClick={handleUnassign}
-                disabled={isLoadingTasks || isAssigning || !selectedTask?.assignedWorkerId}
+                disabled={isLoadingTasks || isAssigning || isUpdatingLifecycle || !selectedTask?.assignedWorkerId}
               >
                 <RotateCcw className="size-4" aria-hidden="true" />
                 Unassign

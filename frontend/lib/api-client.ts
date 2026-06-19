@@ -30,6 +30,8 @@ type TaskMutationResponse = {
   }
 }
 
+type LifecycleStatus = "in_review" | "approved" | "correction_needed" | "escalated"
+
 function getApiBaseUrl() {
   const value = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
   if (!value) return null
@@ -339,6 +341,65 @@ export async function assignTask(taskId: string, agentId: string | null): Promis
   const updatedTask = toTaskItem(payload?.data ?? payload?.task ?? payload)
   if (!updatedTask) {
     throw new Error("Standalone backend returned an unsupported task assignment response")
+  }
+
+  return updatedTask
+}
+
+function canMoveToLifecycleStatus(task: TaskItem, status: LifecycleStatus) {
+  const hasAssignment = Boolean(task.assignedWorkerId)
+
+  switch (status) {
+    case "in_review":
+      return hasAssignment && (task.status === "assigned" || task.status === "correction_needed" || task.status === "escalated")
+    case "approved":
+      return hasAssignment && (task.status === "assigned" || task.status === "in_review")
+    case "correction_needed":
+      return hasAssignment && (task.status === "assigned" || task.status === "in_review")
+    case "escalated":
+      return hasAssignment && (task.status === "assigned" || task.status === "in_review" || task.status === "correction_needed")
+    default:
+      return false
+  }
+}
+
+export async function updateTaskLifecycleStatus(taskId: string, status: LifecycleStatus): Promise<TaskItem> {
+  const apiBaseUrl = getApiBaseUrl()
+
+  if (!apiBaseUrl) {
+    const fallback = mockTasks.find((task) => task.id === taskId)
+    if (!fallback) {
+      throw new Error(`Task ${taskId} was not found in mock fallback mode`)
+    }
+
+    if (!canMoveToLifecycleStatus(fallback, status)) {
+      throw new Error(`Task ${taskId} cannot move from ${fallback.status} to ${status} in mock fallback mode`)
+    }
+
+    return {
+      ...fallback,
+      status,
+    }
+  }
+
+  const url = `${apiBaseUrl}/tasks/${taskId}/status`
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as TaskMutationResponse | null
+  if (!response.ok) {
+    const message = toErrorMessage(payload) ?? `Failed to update task status via ${url} (${response.status})`
+    throw new Error(message)
+  }
+
+  const updatedTask = toTaskItem(payload?.data ?? payload?.task ?? payload)
+  if (!updatedTask) {
+    throw new Error("Standalone backend returned an unsupported task status response")
   }
 
   return updatedTask

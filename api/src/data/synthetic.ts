@@ -149,6 +149,36 @@ export function updateTaskAssignment(taskId: string, agentId: string | null) {
   return task;
 }
 
+export function updateTaskStatus(
+  taskId: string,
+  status: "in_review" | "approved" | "correction_needed" | "escalated",
+) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) return undefined;
+
+  if (task.status === status) {
+    return task;
+  }
+
+  task.status = status;
+
+  const eventByStatus: Record<typeof status, string> = {
+    in_review: "task.review_started",
+    approved: "task.approved",
+    correction_needed: "task.correction_needed",
+    escalated: "task.escalated",
+  };
+
+  appendAudit({
+    eventType: eventByStatus[status],
+    entityType: "task",
+    entityId: task.id,
+    summary: `Updated ${task.id} to ${status}`,
+  });
+
+  return task;
+}
+
 function appendAudit(input: Omit<AuditEvent, "id" | "timestamp">) {
   auditCounter += 1;
   auditEvents.unshift({
