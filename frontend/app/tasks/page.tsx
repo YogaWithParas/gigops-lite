@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { tasks, gigWorkers } from "@/lib/gig-data"
+import { gigWorkers } from "@/lib/gig-data"
+import { getTasks } from "@/lib/api-client"
 import { pickBestWorker, rankWorkersForTask } from "@/lib/gig-ops"
 import type { TaskItem } from "@/lib/types"
 import { CheckCircle2, ListTodo, RotateCcw, Sparkles, UsersRound } from "lucide-react"
@@ -27,14 +28,39 @@ function statusStyle(status: TaskItem["status"]) {
 }
 
 export default function TasksPage() {
-  const [selectedTaskId, setSelectedTaskId] = useState(tasks[0]?.id ?? "")
-  const selectedTask = useMemo(() => tasks.find((task) => task.id === selectedTaskId) ?? tasks[0], [selectedTaskId])
+  const [tasksData, setTasksData] = useState<TaskItem[]>([])
+  const [selectedTaskId, setSelectedTaskId] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadTasks() {
+      try {
+        const nextTasks = await getTasks()
+        if (cancelled) return
+
+        setTasksData(nextTasks)
+        setSelectedTaskId((current) => (current ? current : nextTasks[0]?.id ?? ""))
+      } catch (error) {
+        if (cancelled) return
+        console.error("Failed to load tasks", error)
+      }
+    }
+
+    loadTasks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const selectedTask = useMemo(() => tasksData.find((task) => task.id === selectedTaskId) ?? tasksData[0], [selectedTaskId, tasksData])
   const ranked = useMemo(() => (selectedTask ? rankWorkersForTask(selectedTask, gigWorkers) : []), [selectedTask])
   const topPick = useMemo(() => (selectedTask ? pickBestWorker(selectedTask, gigWorkers) : undefined), [selectedTask])
 
-  const queuedTasks = tasks.filter((task) => task.status === "queued").length
-  const assignedTasks = tasks.filter((task) => task.status === "assigned" || task.status === "in_review").length
-  const doneTasks = tasks.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
+  const queuedTasks = tasksData.filter((task) => task.status === "queued").length
+  const assignedTasks = tasksData.filter((task) => task.status === "assigned" || task.status === "in_review").length
+  const doneTasks = tasksData.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
 
   return (
     <>
@@ -52,7 +78,7 @@ export default function TasksPage() {
         <Card className="xl:col-span-2">
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {tasks.map((task) => (
+              {tasksData.map((task) => (
                 <button key={task.id} type="button" onClick={() => setSelectedTaskId(task.id)} className={`w-full p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selectedTaskId === task.id ? "bg-secondary" : "bg-card hover:bg-muted/40"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
