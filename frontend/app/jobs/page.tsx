@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { getJobs } from "@/lib/api-client"
-import type { JobBatch, JobStatus, JobType, Priority } from "@/lib/types"
+import { getJobs, getTasks } from "@/lib/api-client"
+import type { JobBatch, JobStatus, JobType, Priority, TaskItem } from "@/lib/types"
 import { BriefcaseBusiness, CalendarDays, CircleCheckBig, Layers3 } from "lucide-react"
 
 const jobTypeOptions: JobType[] = ["cx", "data-labeling"]
@@ -36,6 +36,24 @@ function statusTone(status: JobStatus) {
   }
 }
 
+function taskStatusTone(status: TaskItem["status"]) {
+  switch (status) {
+    case "approved":
+    case "queued_for_payout":
+    case "paid":
+      return "bg-emerald-100 text-emerald-800"
+    case "assigned":
+    case "in_review":
+      return "bg-sky-100 text-sky-800"
+    case "correction_needed":
+      return "bg-amber-100 text-amber-800"
+    case "escalated":
+      return "bg-rose-100 text-rose-800"
+    default:
+      return "bg-secondary text-secondary-foreground"
+  }
+}
+
 function seedJob(): JobBatch {
   return {
     id: "JOB-NEW",
@@ -56,6 +74,7 @@ function seedJob(): JobBatch {
 
 export default function JobsPage() {
   const [jobsData, setJobsData] = useState<JobBatch[]>([])
+  const [tasksData, setTasksData] = useState<TaskItem[]>([])
   const [draft, setDraft] = useState(seedJob())
   const [selectedJobId, setSelectedJobId] = useState("")
 
@@ -64,10 +83,11 @@ export default function JobsPage() {
 
     async function loadJobs() {
       try {
-        const nextJobs = await getJobs()
+        const [nextJobs, nextTasks] = await Promise.all([getJobs(), getTasks()])
         if (cancelled) return
 
         setJobsData(nextJobs)
+        setTasksData(nextTasks)
         setSelectedJobId((current) => (current ? current : nextJobs[0]?.id ?? ""))
       } catch (error) {
         if (cancelled) return
@@ -83,10 +103,22 @@ export default function JobsPage() {
   }, [])
 
   const selectedJob = useMemo(() => jobsData.find((job) => job.id === selectedJobId) ?? jobsData[0], [selectedJobId, jobsData])
+  const relatedTasks = useMemo(
+    () => tasksData.filter((task) => task.jobId === selectedJob?.id),
+    [selectedJob, tasksData],
+  )
+  const relatedTaskCount = relatedTasks.length
+  const queuedRelatedTasks = relatedTasks.filter((task) => task.status === "queued").length
+  const assignedOrReviewRelatedTasks = relatedTasks.filter((task) => task.status === "assigned" || task.status === "in_review").length
+  const doneRelatedTasks = relatedTasks.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
 
   const activeJobs = jobsData.filter((job) => job.status !== "complete").length
   const jobsInQa = jobsData.filter((job) => job.status === "qa").length
   const dueSoon = jobsData.filter((job) => job.priority === "urgent" || job.priority === "high").length
+
+  function scrollToRelatedTasks() {
+    document.getElementById("related-tasks")?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   return (
     <>
@@ -206,8 +238,49 @@ export default function JobsPage() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Notes</p>
                 <p className="text-sm leading-relaxed text-foreground">{selectedJob.notes}</p>
               </div>
+              <div className="md:col-span-2 xl:col-span-4 flex items-center gap-3">
+                <Button type="button" variant="outline" onClick={scrollToRelatedTasks}>
+                  View related tasks
+                </Button>
+                <p className="text-xs text-muted-foreground">Tasks are linked by jobId and shown below.</p>
+              </div>
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6" id="related-tasks">
+        <CardHeader>
+          <CardTitle>Related tasks</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <StatCard label="Related tasks" value={relatedTaskCount} hint="Linked by jobId" icon={Layers3} />
+            <StatCard label="Queued" value={queuedRelatedTasks} hint="Waiting for assignment" icon={Layers3} />
+            <StatCard label="Assigned / review" value={assignedOrReviewRelatedTasks} hint="In worker or QA flow" icon={Layers3} />
+            <StatCard label="Done" value={doneRelatedTasks} hint="Approved or payout ready" icon={CircleCheckBig} />
+          </div>
+
+          <div className="space-y-3">
+            {relatedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No related tasks surfaced for this job yet.</p>
+            ) : (
+              relatedTasks.map((task) => (
+                <div key={task.id} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">{task.title}</p>
+                      <p className="text-sm text-muted-foreground">{task.id} · {task.requiredSkills.join(", ")}</p>
+                    </div>
+                    <Badge className={taskStatusTone(task.status)}>{task.status.replace("_", " ")}</Badge>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Assigned agent: {task.assignedWorkerId ?? "unassigned"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </>
