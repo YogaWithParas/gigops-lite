@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { gigWorkers } from "@/lib/gig-data"
 import { assignTask, getAgents, getTasks } from "@/lib/api-client"
-import { pickBestWorker, rankWorkersForTask } from "@/lib/gig-ops"
+import { rankWorkersForTask } from "@/lib/gig-ops"
 import type { GigWorker, TaskItem } from "@/lib/types"
 import { CheckCircle2, ListTodo, RotateCcw, Sparkles, UsersRound } from "lucide-react"
 
@@ -94,9 +94,10 @@ export default function TasksPage() {
   }, [])
 
   const selectedTask = useMemo(() => tasksData.find((task) => task.id === selectedTaskId), [selectedTaskId, tasksData])
-  const availableAgents = useMemo(() => agentsData.filter((worker) => worker.availability === "available"), [agentsData])
   const ranked = useMemo(() => (selectedTask ? rankWorkersForTask(selectedTask, agentsData) : []), [selectedTask, agentsData])
-  const topPick = useMemo(() => (selectedTask ? pickBestWorker(selectedTask, agentsData) : undefined), [selectedTask, agentsData])
+  const topPick = useMemo(() => ranked[0], [ranked])
+  const rankedAgents = useMemo(() => ranked.map((entry) => entry.worker), [ranked])
+  const noStrongMatch = useMemo(() => ranked.length > 0 && ranked.every((entry) => entry.total < 45), [ranked])
   const assignedAgent = useMemo(
     () => agentsData.find((agent) => agent.id === selectedTask?.assignedWorkerId),
     [agentsData, selectedTask],
@@ -108,14 +109,9 @@ export default function TasksPage() {
       return
     }
 
-    const preferredAgentId = selectedTask.assignedWorkerId ?? topPick?.worker.id ?? availableAgents[0]?.id ?? ""
-    setSelectedAgentId((current) => {
-      if (current && availableAgents.some((agent) => agent.id === current)) {
-        return current
-      }
-      return preferredAgentId
-    })
-  }, [selectedTask, topPick, availableAgents])
+    const preferredAgentId = selectedTask.assignedWorkerId ?? topPick?.worker.id ?? rankedAgents[0]?.id ?? ""
+    setSelectedAgentId(preferredAgentId)
+  }, [selectedTask, topPick, rankedAgents])
 
   const queuedTasks = tasksData.filter((task) => task.status === "queued").length
   const assignedTasks = tasksData.filter((task) => task.status === "assigned" || task.status === "in_review").length
@@ -218,6 +214,7 @@ export default function TasksPage() {
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Top assignment candidate</p>
               <p className="text-sm font-medium text-foreground">{topPick?.worker.name ?? "No worker available"}</p>
               <p className="text-xs text-muted-foreground">{topPick?.rationale}</p>
+              {noStrongMatch ? <p className="mt-1 text-xs text-amber-700">No strong match. Manual assignment still available.</p> : null}
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Current assignment</p>
@@ -225,18 +222,18 @@ export default function TasksPage() {
               <p className="text-xs text-muted-foreground">{selectedTask?.assignedWorkerId ?? "No agent linked"}</p>
             </div>
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Assignment target</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Assignment target (manual override)</p>
               <select
-                aria-label="Assignment target"
+                aria-label="Assignment target manual override"
                 value={selectedAgentId}
                 onChange={(event) => setSelectedAgentId(event.target.value)}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={isLoadingTasks || isAssigning || availableAgents.length === 0}
+                disabled={isLoadingTasks || isAssigning || rankedAgents.length === 0}
               >
-                {availableAgents.length === 0 ? <option value="">No available agents match this task right now.</option> : null}
-                {availableAgents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name} ({agent.id})
+                {rankedAgents.length === 0 ? <option value="">No agents available for recommendation.</option> : null}
+                {ranked.map((entry) => (
+                  <option key={entry.worker.id} value={entry.worker.id}>
+                    {entry.worker.name} ({entry.worker.id}) - {entry.total}
                   </option>
                 ))}
               </select>
@@ -249,7 +246,11 @@ export default function TasksPage() {
                     <p className="font-medium text-foreground">{entry.worker.name}</p>
                     <p className="tabular-nums text-sm text-muted-foreground">{entry.total}</p>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{entry.rationale}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Matched skills: {entry.matchedSkills.length > 0 ? entry.matchedSkills.join(", ") : "none"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Capacity: {entry.capacityLabel} · {entry.worker.workload}/{entry.worker.maxWorkload} load</p>
+                  <p className="text-xs text-muted-foreground">{entry.rationale}</p>
                 </div>
               ))}
             </div>

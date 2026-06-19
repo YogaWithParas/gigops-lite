@@ -3,6 +3,8 @@ import type { GigWorker, Priority, TaskItem } from "./types"
 export interface AssignmentScore {
   worker: GigWorker
   total: number
+  matchedSkills: string[]
+  capacityLabel: "available" | "busy" | "overloaded"
   breakdown: {
     skills: number
     quality: number
@@ -25,25 +27,43 @@ function overlapCount(left: string[], right: string[]): number {
   return left.filter((item) => rightSet.has(item)).length
 }
 
+function overlapItems(left: string[], right: string[]): string[] {
+  const rightSet = new Set(right)
+  return left.filter((item) => rightSet.has(item))
+}
+
 function availableRatio(worker: GigWorker): number {
   if (worker.availability === "offline") return 0
   if (worker.availability === "busy") return 0.55
   return 1
 }
 
+function capacityForWorker(worker: GigWorker): AssignmentScore["capacityLabel"] {
+  if (worker.maxWorkload <= 0) return "overloaded"
+
+  const loadRatio = worker.workload / worker.maxWorkload
+  if (loadRatio >= 0.85) return "overloaded"
+  if (loadRatio >= 0.5) return "busy"
+  return "available"
+}
+
 export function scoreWorkerForTask(task: TaskItem, worker: GigWorker): AssignmentScore {
+  const matchedSkills = overlapItems(task.requiredSkills, worker.skills)
   const skillHits = overlapCount(task.requiredSkills, worker.skills)
   const skills = task.requiredSkills.length > 0 ? skillHits / task.requiredSkills.length : 0
   const quality = worker.qualityScore / 100
-  const workload = worker.maxWorkload > 0 ? 1 - worker.workload / worker.maxWorkload : 0
+  const workload = worker.maxWorkload > 0 ? Math.max(0, 1 - worker.workload / worker.maxWorkload) : 0
   const availability = availableRatio(worker)
   const priority = priorityBoost[task.priority]
+  const capacityLabel = capacityForWorker(worker)
 
   const total = Math.round((skills * 45 + quality * 25 + workload * 15 + availability * 15) * priority)
 
   return {
     worker,
     total,
+    matchedSkills,
+    capacityLabel,
     breakdown: {
       skills: Math.round(skills * 45),
       quality: Math.round(quality * 25),
@@ -54,7 +74,7 @@ export function scoreWorkerForTask(task: TaskItem, worker: GigWorker): Assignmen
     rationale: [
       skillHits > 0 ? `${skillHits} skill overlap${skillHits === 1 ? "" : "s"}` : "no direct skill overlap",
       `${worker.qualityScore}% quality score`,
-      `${worker.workload}/${worker.maxWorkload} workload`,
+      `${worker.workload}/${worker.maxWorkload} workload (${capacityLabel})`,
       worker.availability,
     ].join(" · "),
   }
