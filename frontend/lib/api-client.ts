@@ -11,6 +11,15 @@ type TasksApiResponse = {
   data?: unknown
 }
 
+type TaskMutationResponse = {
+  task?: unknown
+  data?: unknown
+  message?: unknown
+  error?: {
+    message?: unknown
+  }
+}
+
 function getApiBaseUrl() {
   const value = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
   if (!value) return null
@@ -22,6 +31,21 @@ function toList(payload: { jobs?: unknown; tasks?: unknown; data?: unknown }) {
   if (Array.isArray(payload.tasks)) return payload.tasks
   if (Array.isArray(payload.data)) return payload.data
   return []
+}
+
+function toErrorMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null
+
+  const source = payload as {
+    message?: unknown
+    error?: {
+      message?: unknown
+    }
+  }
+
+  if (typeof source.message === "string" && source.message) return source.message
+  if (typeof source.error?.message === "string" && source.error.message) return source.error.message
+  return null
 }
 
 function toJobBatch(input: unknown): JobBatch | null {
@@ -139,4 +163,43 @@ export async function getTasks(): Promise<TaskItem[]> {
   const list = toList(payload)
 
   return list.map(toTaskItem).filter((task): task is TaskItem => Boolean(task))
+}
+
+export async function assignTask(taskId: string, agentId: string): Promise<TaskItem> {
+  const apiBaseUrl = getApiBaseUrl()
+
+  if (!apiBaseUrl) {
+    const fallback = mockTasks.find((task) => task.id === taskId)
+    if (!fallback) {
+      throw new Error(`Task ${taskId} was not found in mock fallback mode`)
+    }
+
+    return {
+      ...fallback,
+      assignedWorkerId: agentId,
+      status: "assigned",
+    }
+  }
+
+  const url = `${apiBaseUrl}/tasks/${taskId}/assign`
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ agentId }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as TaskMutationResponse | null
+  if (!response.ok) {
+    const message = toErrorMessage(payload) ?? `Failed to assign task via ${url} (${response.status})`
+    throw new Error(message)
+  }
+
+  const updatedTask = toTaskItem(payload?.data ?? payload?.task ?? payload)
+  if (!updatedTask) {
+    throw new Error("Standalone backend returned an unsupported task assignment response")
+  }
+
+  return updatedTask
 }

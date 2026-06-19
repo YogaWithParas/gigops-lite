@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { gigWorkers } from "@/lib/gig-data"
-import { getTasks } from "@/lib/api-client"
+import { assignTask, getTasks } from "@/lib/api-client"
 import { pickBestWorker, rankWorkersForTask } from "@/lib/gig-ops"
 import type { TaskItem } from "@/lib/types"
 import { CheckCircle2, ListTodo, RotateCcw, Sparkles, UsersRound } from "lucide-react"
@@ -28,22 +28,37 @@ function statusStyle(status: TaskItem["status"]) {
 }
 
 export default function TasksPage() {
+  const isBackendMode = Boolean(process.env.NEXT_PUBLIC_API_BASE_URL?.trim())
   const [tasksData, setTasksData] = useState<TaskItem[]>([])
   const [selectedTaskId, setSelectedTaskId] = useState("")
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true)
+  const [isAssigning, setIsAssigning] = useState(false)
+  const [assignmentError, setAssignmentError] = useState("")
+  const [assignmentMessage, setAssignmentMessage] = useState("")
 
   useEffect(() => {
     let cancelled = false
 
     async function loadTasks() {
+      setIsLoadingTasks(true)
+      if (isBackendMode) {
+        // Clear potentially stale mock UI state before backend tasks are loaded.
+        setTasksData([])
+        setSelectedTaskId("")
+      }
+
       try {
         const nextTasks = await getTasks()
         if (cancelled) return
 
         setTasksData(nextTasks)
-        setSelectedTaskId((current) => (current ? current : nextTasks[0]?.id ?? ""))
+        setSelectedTaskId(nextTasks[0]?.id ?? "")
       } catch (error) {
         if (cancelled) return
         console.error("Failed to load tasks", error)
+      } finally {
+        if (cancelled) return
+        setIsLoadingTasks(false)
       }
     }
 
@@ -54,7 +69,7 @@ export default function TasksPage() {
     }
   }, [])
 
-  const selectedTask = useMemo(() => tasksData.find((task) => task.id === selectedTaskId) ?? tasksData[0], [selectedTaskId, tasksData])
+  const selectedTask = useMemo(() => tasksData.find((task) => task.id === selectedTaskId), [selectedTaskId, tasksData])
   const ranked = useMemo(() => (selectedTask ? rankWorkersForTask(selectedTask, gigWorkers) : []), [selectedTask])
   const topPick = useMemo(() => (selectedTask ? pickBestWorker(selectedTask, gigWorkers) : undefined), [selectedTask])
 
@@ -62,10 +77,35 @@ export default function TasksPage() {
   const assignedTasks = tasksData.filter((task) => task.status === "assigned" || task.status === "in_review").length
   const doneTasks = tasksData.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
 
+  async function handleAssign() {
+    if (!selectedTask || !topPick) return
+
+    setIsAssigning(true)
+    setAssignmentError("")
+    setAssignmentMessage("")
+
+    try {
+      const updatedTask = await assignTask(selectedTask.id, topPick.worker.id)
+
+      setTasksData((current) => current.map((task) => (task.id === updatedTask.id ? { ...task, ...updatedTask } : task)))
+      setAssignmentMessage(
+        isBackendMode
+          ? `Assigned ${selectedTask.id} to ${topPick.worker.name} via the standalone backend.`
+          : `Mock fallback mode updated ${selectedTask.id} locally only.`,
+      )
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : "Task assignment failed")
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
   return (
     <>
       <PageHeader title="Tasks" description="Queue view for synthetic work items. Assignment scoring considers skills, quality, workload, availability, and priority.">
-        <Badge className="border-transparent bg-accent text-accent-foreground">Assignment logic is mocked</Badge>
+        <Badge className="border-transparent bg-accent text-accent-foreground">
+          {isBackendMode ? "Assignment action uses standalone backend" : "Assignment action is mock-only in fallback mode"}
+        </Badge>
       </PageHeader>
 
       <section aria-label="Task metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -118,8 +158,13 @@ export default function TasksPage() {
                 </div>
               ))}
             </div>
+            {assignmentError ? <p role="alert" className="text-sm text-rose-700">{assignmentError}</p> : null}
+            {assignmentMessage ? <p className="text-sm text-muted-foreground">{assignmentMessage}</p> : null}
             <div className="flex gap-3">
-              <Button className="flex-1"><Sparkles className="size-4" aria-hidden="true" />Assign</Button>
+              <Button className="flex-1" onClick={handleAssign} disabled={isLoadingTasks || !selectedTask || !topPick || isAssigning}>
+                <Sparkles className="size-4" aria-hidden="true" />
+                {isAssigning ? "Assigning..." : isLoadingTasks ? "Loading..." : "Assign"}
+              </Button>
               <Button variant="outline" className="flex-1"><RotateCcw className="size-4" aria-hidden="true" />Re-score</Button>
             </div>
           </CardContent>
