@@ -102,11 +102,42 @@ export function createSyntheticJob(input: {
 }
 
 export function assignTask(taskId: string, agentId: string) {
+  return updateTaskAssignment(taskId, agentId);
+}
+
+export function updateTaskAssignment(taskId: string, agentId: string | null) {
   const task = tasks.find((item) => item.id === taskId);
   if (!task) return undefined;
 
+  const previousAgentId = task.assignedAgentId;
+
+  if (agentId === null) {
+    task.assignedAgentId = undefined;
+    task.status = "queued";
+
+    appendAudit({
+      eventType: "task.unassigned",
+      entityType: "task",
+      entityId: task.id,
+      summary: `Unassigned ${task.id}${previousAgentId ? ` from ${previousAgentId}` : ""}`,
+    });
+
+    return task;
+  }
+
   task.assignedAgentId = agentId;
   task.status = "assigned";
+
+  if (previousAgentId && previousAgentId !== agentId) {
+    appendAudit({
+      eventType: "task.reassigned",
+      entityType: "task",
+      entityId: task.id,
+      summary: `Reassigned ${task.id} from ${previousAgentId} to ${agentId}`,
+    });
+
+    return task;
+  }
 
   appendAudit({
     eventType: "task.assigned",

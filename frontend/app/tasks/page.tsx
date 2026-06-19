@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { gigWorkers } from "@/lib/gig-data"
-import { assignTask, getTasks } from "@/lib/api-client"
+import { assignTask, getAgents, getTasks } from "@/lib/api-client"
 import { pickBestWorker, rankWorkersForTask } from "@/lib/gig-ops"
-import type { TaskItem } from "@/lib/types"
+import type { GigWorker, TaskItem } from "@/lib/types"
 import { CheckCircle2, ListTodo, RotateCcw, Sparkles, UsersRound } from "lucide-react"
 
 function statusStyle(status: TaskItem["status"]) {
@@ -30,7 +30,9 @@ function statusStyle(status: TaskItem["status"]) {
 export default function TasksPage() {
   const isBackendMode = Boolean(process.env.NEXT_PUBLIC_API_BASE_URL?.trim())
   const [tasksData, setTasksData] = useState<TaskItem[]>([])
+  const [agentsData, setAgentsData] = useState<GigWorker[]>(gigWorkers)
   const [selectedTaskId, setSelectedTaskId] = useState("")
+  const [selectedAgentId, setSelectedAgentId] = useState("")
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const [isAssigning, setIsAssigning] = useState(false)
   const [assignmentError, setAssignmentError] = useState("")
@@ -69,35 +71,103 @@ export default function TasksPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAgents() {
+      try {
+        const nextAgents = await getAgents()
+        if (cancelled) return
+
+        setAgentsData(nextAgents)
+      } catch (error) {
+        if (cancelled) return
+        console.error("Failed to load agents", error)
+      }
+    }
+
+    loadAgents()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const selectedTask = useMemo(() => tasksData.find((task) => task.id === selectedTaskId), [selectedTaskId, tasksData])
-  const ranked = useMemo(() => (selectedTask ? rankWorkersForTask(selectedTask, gigWorkers) : []), [selectedTask])
-  const topPick = useMemo(() => (selectedTask ? pickBestWorker(selectedTask, gigWorkers) : undefined), [selectedTask])
+  const availableAgents = useMemo(() => agentsData.filter((worker) => worker.availability === "available"), [agentsData])
+  const ranked = useMemo(() => (selectedTask ? rankWorkersForTask(selectedTask, agentsData) : []), [selectedTask, agentsData])
+  const topPick = useMemo(() => (selectedTask ? pickBestWorker(selectedTask, agentsData) : undefined), [selectedTask, agentsData])
+  const assignedAgent = useMemo(
+    () => agentsData.find((agent) => agent.id === selectedTask?.assignedWorkerId),
+    [agentsData, selectedTask],
+  )
+
+  useEffect(() => {
+    if (!selectedTask) {
+      setSelectedAgentId("")
+      return
+    }
+
+    const preferredAgentId = selectedTask.assignedWorkerId ?? topPick?.worker.id ?? availableAgents[0]?.id ?? ""
+    setSelectedAgentId((current) => {
+      if (current && availableAgents.some((agent) => agent.id === current)) {
+        return current
+      }
+      return preferredAgentId
+    })
+  }, [selectedTask, topPick, availableAgents])
 
   const queuedTasks = tasksData.filter((task) => task.status === "queued").length
   const assignedTasks = tasksData.filter((task) => task.status === "assigned" || task.status === "in_review").length
   const doneTasks = tasksData.filter((task) => task.status === "approved" || task.status === "queued_for_payout" || task.status === "paid").length
 
-  async function handleAssign() {
-    if (!selectedTask || !topPick) return
+  async function runAssignment(nextAgentId: string | null) {
+    if (!selectedTask) return
 
     setIsAssigning(true)
     setAssignmentError("")
     setAssignmentMessage("")
 
     try {
-      const updatedTask = await assignTask(selectedTask.id, topPick.worker.id)
+      const updatedTask = await assignTask(selectedTask.id, nextAgentId)
 
       setTasksData((current) => current.map((task) => (task.id === updatedTask.id ? { ...task, ...updatedTask } : task)))
-      setAssignmentMessage(
-        isBackendMode
-          ? `Assigned ${selectedTask.id} to ${topPick.worker.name} via the standalone backend.`
-          : `Mock fallback mode updated ${selectedTask.id} locally only.`,
-      )
+
+      const targetAgent = agentsData.find((agent) => agent.id === nextAgentId)
+      if (nextAgentId === null) {
+        setAssignmentMessage(
+          isBackendMode
+            ? `Unassigned ${selectedTask.id} via the standalone backend.`
+            : `Mock fallback mode unassigned ${selectedTask.id} locally only.`,
+        )
+      } else if (selectedTask.assignedWorkerId && selectedTask.assignedWorkerId !== nextAgentId) {
+        setAssignmentMessage(
+          isBackendMode
+            ? `Reassigned ${selectedTask.id} to ${targetAgent?.name ?? nextAgentId} via the standalone backend.`
+            : `Mock fallback mode reassigned ${selectedTask.id} locally only.`,
+        )
+      } else {
+        setAssignmentMessage(
+          isBackendMode
+            ? `Assigned ${selectedTask.id} to ${targetAgent?.name ?? nextAgentId} via the standalone backend.`
+            : `Mock fallback mode updated ${selectedTask.id} locally only.`,
+        )
+      }
     } catch (error) {
       setAssignmentError(error instanceof Error ? error.message : "Task assignment failed")
     } finally {
       setIsAssigning(false)
     }
+  }
+
+  async function handleAssignOrReassign() {
+    if (!selectedTask || !selectedAgentId) return
+    await runAssignment(selectedAgentId)
+  }
+
+  async function handleUnassign() {
+    if (!selectedTask?.assignedWorkerId) return
+    await runAssignment(null)
   }
 
   return (
@@ -124,6 +194,9 @@ export default function TasksPage() {
                     <div>
                       <p className="font-semibold text-foreground">{task.title}</p>
                       <p className="text-sm text-muted-foreground">{task.id} · {task.requiredSkills.join(", ")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Assigned: {task.assignedWorkerId ?? "unassigned"}
+                      </p>
                     </div>
                     <Badge className={statusStyle(task.status)}>{task.status.replace("_", " ")}</Badge>
                   </div>
@@ -146,6 +219,28 @@ export default function TasksPage() {
               <p className="text-sm font-medium text-foreground">{topPick?.worker.name ?? "No worker available"}</p>
               <p className="text-xs text-muted-foreground">{topPick?.rationale}</p>
             </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Current assignment</p>
+              <p className="text-sm font-medium text-foreground">{assignedAgent?.name ?? "Unassigned"}</p>
+              <p className="text-xs text-muted-foreground">{selectedTask?.assignedWorkerId ?? "No agent linked"}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Assignment target</p>
+              <select
+                aria-label="Assignment target"
+                value={selectedAgentId}
+                onChange={(event) => setSelectedAgentId(event.target.value)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                disabled={isLoadingTasks || isAssigning || availableAgents.length === 0}
+              >
+                {availableAgents.length === 0 ? <option value="">No available agents match this task right now.</option> : null}
+                {availableAgents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} ({agent.id})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Ranking preview</p>
               {ranked.slice(0, 3).map((entry) => (
@@ -161,11 +256,23 @@ export default function TasksPage() {
             {assignmentError ? <p role="alert" className="text-sm text-rose-700">{assignmentError}</p> : null}
             {assignmentMessage ? <p className="text-sm text-muted-foreground">{assignmentMessage}</p> : null}
             <div className="flex gap-3">
-              <Button className="flex-1" onClick={handleAssign} disabled={isLoadingTasks || !selectedTask || !topPick || isAssigning}>
+              <Button
+                className="flex-1"
+                onClick={handleAssignOrReassign}
+                disabled={isLoadingTasks || !selectedTask || !selectedAgentId || isAssigning || selectedTask.assignedWorkerId === selectedAgentId}
+              >
                 <Sparkles className="size-4" aria-hidden="true" />
-                {isAssigning ? "Assigning..." : isLoadingTasks ? "Loading..." : "Assign"}
+                {isAssigning ? "Saving..." : isLoadingTasks ? "Loading..." : selectedTask?.assignedWorkerId ? "Reassign" : "Assign"}
               </Button>
-              <Button variant="outline" className="flex-1"><RotateCcw className="size-4" aria-hidden="true" />Re-score</Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleUnassign}
+                disabled={isLoadingTasks || isAssigning || !selectedTask?.assignedWorkerId}
+              >
+                <RotateCcw className="size-4" aria-hidden="true" />
+                Unassign
+              </Button>
             </div>
           </CardContent>
         </Card>

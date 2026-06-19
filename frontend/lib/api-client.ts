@@ -36,9 +36,11 @@ function getApiBaseUrl() {
   return value.replace(/\/$/, "")
 }
 
-function toList(payload: { jobs?: unknown; tasks?: unknown; data?: unknown }) {
+function toList(payload: { jobs?: unknown; tasks?: unknown; agents?: unknown; audit?: unknown; data?: unknown }) {
   if (Array.isArray(payload.jobs)) return payload.jobs
   if (Array.isArray(payload.tasks)) return payload.tasks
+  if (Array.isArray(payload.agents)) return payload.agents
+  if (Array.isArray(payload.audit)) return payload.audit
   if (Array.isArray(payload.data)) return payload.data
   return []
 }
@@ -227,13 +229,20 @@ function toTaskItem(input: unknown): TaskItem | null {
         ? source.assignedAgentId
         : fallback?.assignedWorkerId
 
+  const normalizedStatus =
+    source.status === "queued" && assignedWorkerId
+      ? "assigned"
+      : source.status === "assigned" && !assignedWorkerId
+        ? "queued"
+        : source.status
+
   return {
     id: source.id,
     jobId: source.jobId,
     title: source.title,
     type: source.type ?? fallback?.type ?? "cx",
     priority: source.priority,
-    status: source.status,
+    status: normalizedStatus,
     requiredSkills: Array.isArray(source.requiredSkills) ? source.requiredSkills : fallback?.requiredSkills ?? [],
     estimatedMinutes:
       typeof source.estimatedMinutes === "number" ? source.estimatedMinutes : fallback?.estimatedMinutes ?? 0,
@@ -296,7 +305,7 @@ export async function getAudit(): Promise<AuditEvent[]> {
   return list.map(toAuditEvent).filter((event): event is AuditEvent => Boolean(event))
 }
 
-export async function assignTask(taskId: string, agentId: string): Promise<TaskItem> {
+export async function assignTask(taskId: string, agentId: string | null): Promise<TaskItem> {
   const apiBaseUrl = getApiBaseUrl()
 
   if (!apiBaseUrl) {
@@ -307,8 +316,8 @@ export async function assignTask(taskId: string, agentId: string): Promise<TaskI
 
     return {
       ...fallback,
-      assignedWorkerId: agentId,
-      status: "assigned",
+      assignedWorkerId: agentId ?? undefined,
+      status: agentId ? "assigned" : "queued",
     }
   }
 
