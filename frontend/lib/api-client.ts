@@ -1,5 +1,5 @@
-import { tasks as mockTasks } from "@/lib/gig-data"
-import type { JobBatch, TaskItem } from "@/lib/types"
+import { auditEvents as mockAuditEvents, gigWorkers as mockWorkers, tasks as mockTasks } from "@/lib/gig-data"
+import type { AuditEvent, GigWorker, JobBatch, TaskItem } from "@/lib/types"
 
 type JobsApiResponse = {
   jobs?: unknown
@@ -8,6 +8,16 @@ type JobsApiResponse = {
 
 type TasksApiResponse = {
   tasks?: unknown
+  data?: unknown
+}
+
+type AgentsApiResponse = {
+  agents?: unknown
+  data?: unknown
+}
+
+type AuditApiResponse = {
+  audit?: unknown
   data?: unknown
 }
 
@@ -46,6 +56,97 @@ function toErrorMessage(payload: unknown) {
   if (typeof source.message === "string" && source.message) return source.message
   if (typeof source.error?.message === "string" && source.error.message) return source.error.message
   return null
+}
+
+function toGigWorker(input: unknown): GigWorker | null {
+  if (!input || typeof input !== "object") return null
+
+  const source = input as Partial<GigWorker> & {
+    id?: string
+    name?: string
+    role?: string
+    region?: string
+    timezone?: string
+    skills?: unknown
+    languages?: unknown
+    qualityScore?: number
+    availability?: GigWorker["availability"]
+    workload?: number
+    maxWorkload?: number
+    hourlyRate?: number
+    bio?: string
+  }
+
+  if (!source.id || !source.name || !source.availability) {
+    return null
+  }
+
+  const fallback = mockWorkers.find((worker) => worker.id === source.id)
+
+  return {
+    id: source.id,
+    name: source.name ?? fallback?.name ?? source.id,
+    role: source.role ?? fallback?.role ?? "Gig Worker",
+    region: source.region ?? fallback?.region ?? "Unknown",
+    timezone: source.timezone ?? fallback?.timezone ?? "UTC",
+    skills: Array.isArray(source.skills) ? source.skills : fallback?.skills ?? [],
+    languages: Array.isArray(source.languages) ? source.languages : fallback?.languages ?? [],
+    qualityScore: typeof source.qualityScore === "number" ? source.qualityScore : fallback?.qualityScore ?? 0,
+    availability: source.availability ?? fallback?.availability ?? "available",
+    workload: typeof source.workload === "number" ? source.workload : fallback?.workload ?? 0,
+    maxWorkload: typeof source.maxWorkload === "number" ? source.maxWorkload : fallback?.maxWorkload ?? 0,
+    hourlyRate: typeof source.hourlyRate === "number" ? source.hourlyRate : fallback?.hourlyRate ?? 0,
+    bio: source.bio ?? fallback?.bio ?? "Loaded from standalone backend. Additional worker details are synthetic defaults in frontend.",
+  }
+}
+
+function normalizeEntityType(input: unknown, fallback: AuditEvent["entityType"] = "task"): AuditEvent["entityType"] {
+  if (typeof input !== "string") return fallback
+
+  switch (input) {
+    case "job":
+    case "task":
+    case "worker":
+    case "review":
+    case "payout":
+      return input
+    case "agent":
+      return "worker"
+    default:
+      return fallback
+  }
+}
+
+function toAuditEvent(input: unknown): AuditEvent | null {
+  if (!input || typeof input !== "object") return null
+
+  const source = input as Partial<AuditEvent> & {
+    id?: string
+    timestamp?: string
+    eventType?: AuditEvent["eventType"]
+    actor?: string
+    entityType?: string
+    entityId?: string
+    summary?: string
+    details?: string
+  }
+
+  if (!source.id || !source.timestamp || !source.eventType || !source.entityId || !source.summary) {
+    return null
+  }
+
+  const fallback = mockAuditEvents.find((event) => event.id === source.id) ?? mockAuditEvents.find((event) => event.entityId === source.entityId)
+
+  return {
+    id: source.id,
+    timestamp: source.timestamp ?? fallback?.timestamp ?? new Date().toISOString(),
+    eventType: source.eventType,
+    actor: source.actor ?? fallback?.actor ?? "system",
+    entityType: normalizeEntityType(source.entityType, fallback?.entityType ?? "task"),
+    entityId: source.entityId,
+    summary: source.summary ?? fallback?.summary ?? "Audit event",
+    details: source.details ?? fallback?.details ?? "Loaded from standalone backend. Additional audit details are synthetic defaults in frontend.",
+  }
 }
 
 function toJobBatch(input: unknown): JobBatch | null {
@@ -163,6 +264,36 @@ export async function getTasks(): Promise<TaskItem[]> {
   const list = toList(payload)
 
   return list.map(toTaskItem).filter((task): task is TaskItem => Boolean(task))
+}
+
+export async function getAgents(): Promise<GigWorker[]> {
+  const apiBaseUrl = getApiBaseUrl()
+  const url = apiBaseUrl ? `${apiBaseUrl}/agents` : "/api/agents"
+
+  const response = await fetch(url, { cache: "no-store" })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch agents from ${url} (${response.status})`)
+  }
+
+  const payload = (await response.json()) as AgentsApiResponse
+  const list = toList(payload)
+
+  return list.map(toGigWorker).filter((worker): worker is GigWorker => Boolean(worker))
+}
+
+export async function getAudit(): Promise<AuditEvent[]> {
+  const apiBaseUrl = getApiBaseUrl()
+  const url = apiBaseUrl ? `${apiBaseUrl}/audit` : "/api/audit"
+
+  const response = await fetch(url, { cache: "no-store" })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch audit events from ${url} (${response.status})`)
+  }
+
+  const payload = (await response.json()) as AuditApiResponse
+  const list = toList(payload)
+
+  return list.map(toAuditEvent).filter((event): event is AuditEvent => Boolean(event))
 }
 
 export async function assignTask(taskId: string, agentId: string): Promise<TaskItem> {

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { Card, CardContent } from "@/components/ui/card"
@@ -7,13 +8,38 @@ import { Badge } from "@/components/ui/badge"
 import { TagList } from "@/components/tag-list"
 import { CapacityBar } from "@/components/capacity-bar"
 import { gigWorkers } from "@/lib/gig-data"
+import { getAgents } from "@/lib/api-client"
 import { Building2, Languages, ShieldCheck, UsersRound } from "lucide-react"
 
 export default function AgentsPage() {
-  const available = gigWorkers.filter((worker) => worker.availability === "available").length
-  const busy = gigWorkers.filter((worker) => worker.availability === "busy").length
-  const offline = gigWorkers.filter((worker) => worker.availability === "offline").length
-  const avgQuality = Math.round(gigWorkers.reduce((sum, worker) => sum + worker.qualityScore, 0) / gigWorkers.length)
+  const [workers, setWorkers] = useState(gigWorkers)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAgents() {
+      try {
+        const nextWorkers = await getAgents()
+        if (cancelled) return
+
+        setWorkers(nextWorkers)
+      } catch (error) {
+        if (cancelled) return
+        console.error("Failed to load agents", error)
+      }
+    }
+
+    loadAgents()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const available = workers.filter((worker) => worker.availability === "available").length
+  const busy = workers.filter((worker) => worker.availability === "busy").length
+  const offline = workers.filter((worker) => worker.availability === "offline").length
+  const avgQuality = Math.round(workers.reduce((sum, worker) => sum + worker.qualityScore, 0) / workers.length)
 
   return (
     <>
@@ -29,7 +55,7 @@ export default function AgentsPage() {
       </section>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {gigWorkers.map((worker) => (
+        {workers.map((worker) => (
           <Card key={worker.id} className="h-full">
             <CardContent className="flex h-full flex-col gap-4 p-5">
               <div>

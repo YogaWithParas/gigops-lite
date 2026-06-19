@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   WalletCards,
   FileClock,
+  Activity,
   Menu,
   X,
 } from "lucide-react"
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/quality", label: "Quality", icon: ShieldCheck },
   { href: "/payouts", label: "Payouts", icon: WalletCards },
   { href: "/audit", label: "Audit", icon: FileClock },
+  { href: "/integration-status", label: "Status", icon: Activity },
 ]
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
