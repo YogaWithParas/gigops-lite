@@ -24,6 +24,102 @@ Clients create work
 
 This repository is currently a frontend + mock API prototype.
 
+## Demo Readiness (v0.3f)
+
+### What GigOps Lite Is
+
+GigOps Lite is a recruiter-friendly proof-of-work prototype showing how CX and data-labeling operations can be orchestrated across jobs, tasks, agents, QA, payouts, and audit events.
+
+### Real vs Mock (Technically Honest)
+
+Real now:
+
+* Frontend app deployed on Vercel: https://gigops-lite.vercel.app
+* Standalone local backend API under `api/` (Express + TypeScript)
+* Frontend API client supports two runtime modes:
+	* Mock fallback mode (default)
+	* Backend API mode (when `NEXT_PUBLIC_API_BASE_URL` is set)
+* Backend smoke test harness (`npm run smoke:test` in `api/`)
+
+Mock or planned:
+
+* In-memory synthetic data (resets on restart)
+* No persistent database yet
+* No authentication or authorization yet
+* Backend is not deployed yet (local-only)
+
+### Runtime Modes
+
+Mock fallback mode:
+
+* Used when `NEXT_PUBLIC_API_BASE_URL` is not set
+* Frontend reads from Next.js mock routes (`/api/jobs`, `/api/tasks`, `/api/agents`, `/api/audit`)
+
+Backend API mode:
+
+* Used when `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000`
+* Frontend reads from the standalone local backend
+
+### Run Frontend in Mock Fallback Mode
+
+PowerShell:
+
+```powershell
+cd C:\dev\gigops-prototype\frontend
+Remove-Item Env:NEXT_PUBLIC_API_BASE_URL -ErrorAction SilentlyContinue
+npm run dev
+```
+
+### Run Frontend with Local Backend Mode
+
+Terminal A (backend):
+
+```powershell
+cd C:\dev\gigops-prototype\api
+npm run dev
+```
+
+Terminal B (frontend):
+
+```powershell
+cd C:\dev\gigops-prototype\frontend
+$env:NEXT_PUBLIC_API_BASE_URL='http://localhost:4000'
+npm run dev
+```
+
+### Run Backend Smoke Tests
+
+```powershell
+cd C:\dev\gigops-prototype\api
+$env:BASE_URL='http://localhost:4000'
+npm run smoke:test
+```
+
+### Manual Demo Checklist
+
+With frontend running, verify:
+
+* `/jobs` loads and reflects current mode data source.
+* `/tasks` loads and task assignment action works.
+* `/agents` loads and displays worker availability and profile cards.
+* `/audit` loads and shows audit events.
+* `/integration-status` shows mode, base URL (when set), and reachability checks for jobs/tasks/agents/audit.
+* In backend mode, task assignment is sent to `POST /tasks/:id/assign` and updates the selected task in the UI.
+
+### Known Limitations
+
+* Data is in-memory and resets when services restart.
+* No persistent database yet.
+* No authentication or RBAC enforcement yet.
+* Backend API is local-only and not deployed yet.
+* This status surface is for demo/developer verification, not production monitoring.
+
+### Next Planned Milestones
+
+* v0.4: complete integration pass for remaining frontend workflows using the same safe API-client pattern.
+* v0.5: introduce persistence layer planning and implementation path (still local-first).
+* v0.6: prepare backend deployment readiness plan (auth, observability, and reliability gates) before production rollout.
+
 ## v0.2 Backend API Milestone
 
 GigOps Lite now includes a standalone Express + TypeScript API service under `api/`.
