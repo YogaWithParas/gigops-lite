@@ -12,6 +12,7 @@ import {
   WalletCards,
   FileClock,
   Activity,
+  LayoutGrid,
   Menu,
   X,
 } from "lucide-react"
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/tasks", label: "Tasks", icon: ListTodo },
+  { href: "/queue", label: "Queue", icon: LayoutGrid },
   { href: "/agents", label: "Agents", icon: UsersRound },
   { href: "/quality", label: "Quality", icon: ShieldCheck },
   { href: "/payouts", label: "Payouts", icon: WalletCards },
