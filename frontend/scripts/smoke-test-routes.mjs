@@ -1,6 +1,6 @@
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:3000";
 
-const uiRoutes = ["/", "/jobs", "/tasks", "/agents", "/quality", "/payouts", "/audit"];
+const uiRoutes = ["/", "/jobs", "/tasks", "/queue", "/agents", "/quality", "/payouts", "/audit"];
 const apiRoutes = ["/api/jobs", "/api/tasks", "/api/agents", "/api/audit"];
 
 const legacyPattern =
