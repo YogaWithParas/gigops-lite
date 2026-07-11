@@ -13,6 +13,7 @@ import {
   FileClock,
   Activity,
   LayoutGrid,
+  ClipboardList,
   Menu,
   X,
 } from "lucide-react"
@@ -37,12 +38,15 @@ const workerNavItems = [
   { href: "/worker/payouts", label: "My Payouts", icon: WalletCards },
 ]
 
-// Client gets its own short nav once its routes exist (see the client/worker/ops
-// workflow plan) — empty for now, NavLinks shows a placeholder note.
+const clientNavItems = [
+  { href: "/client", label: "My Jobs", icon: BriefcaseBusiness },
+  { href: "/client/new", label: "Request a Job", icon: ClipboardList },
+]
+
 const navItemsByRole: Record<PersonaRole, typeof opsNavItems> = {
   ops: opsNavItems,
   worker: workerNavItems,
-  client: [],
+  client: clientNavItems,
 }
 
 const roleLabels: Record<PersonaRole, string> = {
