@@ -32,11 +32,16 @@ const opsNavItems = [
   { href: "/integration-status", label: "Status", icon: Activity },
 ]
 
-// Worker and Client each get their own short nav once their routes exist (see the
-// client/worker/ops workflow plan) — empty for now, NavLinks shows a placeholder note.
+const workerNavItems = [
+  { href: "/worker", label: "My Tasks", icon: ListTodo },
+  { href: "/worker/payouts", label: "My Payouts", icon: WalletCards },
+]
+
+// Client gets its own short nav once its routes exist (see the client/worker/ops
+// workflow plan) — empty for now, NavLinks shows a placeholder note.
 const navItemsByRole: Record<PersonaRole, typeof opsNavItems> = {
   ops: opsNavItems,
-  worker: [],
+  worker: workerNavItems,
   client: [],
 }
 
@@ -82,10 +87,7 @@ function NavLinks({ items, onNavigate }: { items: typeof opsNavItems; onNavigate
     <nav className="flex flex-col gap-1" aria-label="Main navigation">
       {items.map((item) => {
         const Icon = item.icon
-        const active =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href)
+        const active = pathname === item.href
         return (
           <Link
             key={item.href}
