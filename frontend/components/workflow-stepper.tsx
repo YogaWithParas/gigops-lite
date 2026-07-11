@@ -30,9 +30,9 @@ export function WorkflowStepper({
               <div className="flex flex-col items-center gap-1.5">
                 <span
                   className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold",
+                    "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors duration-300",
                     isDone && "border-emerald-500 bg-emerald-500 text-white",
-                    isCurrent && !isDone && "border-primary bg-primary text-primary-foreground",
+                    isCurrent && !isDone && "border-primary bg-primary text-primary-foreground animate-[stepper-pop_400ms_ease-out]",
                     !isDone && !isCurrent && "border-border bg-card text-muted-foreground",
                   )}
                   aria-hidden="true"
@@ -44,7 +44,13 @@ export function WorkflowStepper({
                 </span>
               </div>
               {index < stages.length - 1 ? (
-                <span className={cn("mx-1 h-0.5 flex-1 rounded-full", isDone ? "bg-emerald-500" : "bg-border")} aria-hidden="true" />
+                <span
+                  className={cn(
+                    "mx-1 h-0.5 flex-1 rounded-full transition-all duration-500 ease-out",
+                    isDone ? "bg-emerald-500" : "bg-border",
+                  )}
+                  aria-hidden="true"
+                />
               ) : null}
             </li>
           )

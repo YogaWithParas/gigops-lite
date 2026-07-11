@@ -14,7 +14,7 @@ export function StageFunnel({
           <div key={stage.key} className="flex items-center gap-3">
             <span className="w-24 shrink-0 text-sm font-medium text-muted-foreground">{stage.label}</span>
             <div className="h-6 flex-1 overflow-hidden rounded-md bg-muted">
-              <div className="h-full rounded-md bg-primary transition-all" style={{ width: `${widthPct}%` }} />
+              <div className="h-full rounded-md bg-primary transition-all duration-500" style={{ width: `${widthPct}%` }} />
             </div>
             <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">{stage.count}</span>
           </div>
