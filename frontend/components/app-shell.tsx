@@ -14,6 +14,7 @@ import {
   Activity,
   LayoutGrid,
   ClipboardList,
+  Compass,
   Menu,
   X,
 } from "lucide-react"
@@ -115,6 +116,21 @@ function NavLinks({ items, onNavigate }: { items: typeof opsNavItems; onNavigate
   )
 }
 
+function MetaLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <div className="flex flex-col gap-1 border-t border-sidebar-border pt-3">
+      <Link
+        href="/how-it-works"
+        onClick={onNavigate}
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      >
+        <Compass className="size-4 shrink-0" aria-hidden="true" />
+        How it works
+      </Link>
+    </div>
+  )
+}
+
 function Brand() {
   return (
     <Link
@@ -150,7 +166,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-4 flex-1">
           <NavLinks items={navItems} />
         </div>
-        <div className="rounded-lg bg-sidebar-accent p-3 text-xs leading-relaxed text-muted-foreground">
+        <MetaLinks />
+        <div className="mt-3 rounded-lg bg-sidebar-accent p-3 text-xs leading-relaxed text-muted-foreground">
           Prototype only. All jobs, tasks, reviews, and payouts are synthetic and reset on refresh.
         </div>
       </aside>
@@ -173,6 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="space-y-3 border-b border-border bg-sidebar px-4 py-3 lg:hidden">
           <RoleSwitcher />
           <NavLinks items={navItems} onNavigate={() => setMobileOpen(false)} />
+          <MetaLinks onNavigate={() => setMobileOpen(false)} />
         </div>
       )}
 
