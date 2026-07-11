@@ -17,10 +17,12 @@ import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { AttentionCard } from "@/components/attention-card"
 import { CapacityBar } from "@/components/capacity-bar"
+import { StageFunnel } from "@/components/stage-funnel"
 import { FilterSelect, ALL_VALUE } from "@/components/filter-select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getAgents, getAudit, getTasks } from "@/lib/api-client"
+import { TASK_STAGES, getTaskStageIndex } from "@/lib/workflow-stages"
 import type { AuditEvent, GigWorker, TaskItem } from "@/lib/types"
 
 const eventIcons: Record<AuditEvent["eventType"], typeof CheckCircle2> = {
@@ -136,6 +138,16 @@ export default function DashboardPage() {
     return [...escalatedItems, ...correctionItems, ...overloadedItems].slice(0, 6)
   }, [agentsWithLoad, correctionTasks, escalatedTasks])
 
+  const taskStageCounts = useMemo(
+    () =>
+      TASK_STAGES.map((stage, index) => ({
+        key: stage.key,
+        label: stage.label,
+        count: tasksData.filter((task) => getTaskStageIndex(task.status) === index).length,
+      })),
+    [tasksData],
+  )
+
   const filteredAuditEvents = useMemo(() => {
     const filtered =
       entityFilter === ALL_VALUE ? auditData : auditData.filter((event) => event.entityType === entityFilter)
@@ -191,6 +203,16 @@ export default function DashboardPage() {
         <StatCard label="Correction needed" value={correctionTasks.length} hint="Needs another pass" icon={TriangleAlert} />
         <StatCard label="Open tasks" value={openTasks} hint="Queued, assigned, or in review" icon={ListTodo} />
       </section>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Task pipeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? <p className="text-sm text-muted-foreground">Loading pipeline...</p> : null}
+          <StageFunnel stages={taskStageCounts} />
+        </CardContent>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader>

@@ -5,7 +5,9 @@ import { RotateCcw, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { WorkflowStepper } from "@/components/workflow-stepper"
 import { rankWorkersForTask } from "@/lib/gig-ops"
+import { TASK_STAGES, getTaskFlag, getTaskStageIndex, getTaskStageSubLabel } from "@/lib/workflow-stages"
 import type { GigWorker, TaskItem } from "@/lib/types"
 
 type LifecycleStatus = "in_review" | "approved" | "correction_needed" | "escalated"
@@ -79,6 +81,13 @@ export function TaskDetailPanel({
           </p>
           <Badge className={`mt-2 ${statusStyle(task.status)}`}>{task.status.replace("_", " ")}</Badge>
         </div>
+
+        <WorkflowStepper
+          stages={TASK_STAGES}
+          currentIndex={getTaskStageIndex(task.status)}
+          flag={getTaskFlag(task.status)}
+          subLabel={getTaskStageSubLabel(task.status)}
+        />
 
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Top recommendation</p>

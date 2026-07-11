@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { getJobs, getTasks } from "@/lib/api-client"
 import type { JobBatch, JobStatus, JobType, Priority, TaskItem } from "@/lib/types"
 import { BriefcaseBusiness, CalendarDays, CircleCheckBig, Layers3 } from "lucide-react"
+import { WorkflowStepper } from "@/components/workflow-stepper"
+import { JOB_STAGES, getJobFlag, getJobStageIndex } from "@/lib/workflow-stages"
 
 const jobTypeOptions: JobType[] = ["cx", "data-labeling"]
 const priorityOptions: Priority[] = ["low", "normal", "high", "urgent"]
@@ -218,6 +220,13 @@ export default function JobsPage() {
         <CardContent>
           {selectedJob ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="md:col-span-2 xl:col-span-4">
+                <WorkflowStepper
+                  stages={JOB_STAGES}
+                  currentIndex={getJobStageIndex(selectedJob.status)}
+                  flag={getJobFlag(selectedJob.status)}
+                />
+              </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Client</p>
                 <p className="text-sm text-foreground">{selectedJob.clientName}</p>
