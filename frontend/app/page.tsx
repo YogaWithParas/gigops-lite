@@ -174,7 +174,7 @@ export default function DashboardPage() {
         </p>
       ) : null}
 
-      <Card>
+      <Card data-tour="attention-card">
         <CardHeader>
           <CardTitle>Needs your attention</CardTitle>
         </CardHeader>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
         <StatCard label="Open tasks" value={openTasks} hint="Queued, assigned, or in review" icon={ListTodo} />
       </section>
 
-      <Card className="mt-6">
+      <Card className="mt-6" data-tour="task-pipeline-card">
         <CardHeader>
           <CardTitle>Task pipeline</CardTitle>
         </CardHeader>

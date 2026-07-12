@@ -180,7 +180,7 @@ export function QueueBoard() {
         <StatCard label="Done" value={doneCount} hint="Approved or payout ready" icon={CheckCircle2} />
       </section>
 
-      <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
+      <div className="mt-6 flex gap-4 overflow-x-auto pb-2" data-tour="kanban-board">
         {columns.map((column) => (
           <TaskBoardColumn
             key={column.key}
@@ -192,7 +192,7 @@ export function QueueBoard() {
         ))}
       </div>
 
-      <div className="mt-6 max-w-xl">
+      <div className="mt-6 max-w-xl" data-tour="task-detail-panel">
         <TaskDetailPanel
           task={selectedTask}
           agents={agentsData}

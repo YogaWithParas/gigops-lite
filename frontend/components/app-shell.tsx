@@ -16,11 +16,13 @@ import {
   ClipboardList,
   Compass,
   Menu,
+  Sparkles,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { usePersona, type PersonaRole } from "@/lib/persona-context"
+import { useTour } from "@/lib/tour-context"
 
 const opsNavItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -117,6 +119,13 @@ function NavLinks({ items, onNavigate }: { items: typeof opsNavItems; onNavigate
 }
 
 function MetaLinks({ onNavigate }: { onNavigate?: () => void }) {
+  const { start } = useTour()
+
+  function handleStartTour() {
+    start()
+    onNavigate?.()
+  }
+
   return (
     <div className="flex flex-col gap-1 border-t border-sidebar-border pt-3">
       <Link
@@ -127,6 +136,14 @@ function MetaLinks({ onNavigate }: { onNavigate?: () => void }) {
         <Compass className="size-4 shrink-0" aria-hidden="true" />
         How it works
       </Link>
+      <button
+        type="button"
+        onClick={handleStartTour}
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      >
+        <Sparkles className="size-4 shrink-0" aria-hidden="true" />
+        Take the tour
+      </button>
     </div>
   )
 }

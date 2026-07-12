@@ -53,7 +53,7 @@ export function WorkerTaskCard({
   const canSubmitForReview = task.status === "assigned" || task.status === "correction_needed"
 
   return (
-    <Card>
+    <Card data-tour="worker-task-card">
       <CardContent className="space-y-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

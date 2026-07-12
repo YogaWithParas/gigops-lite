@@ -101,8 +101,8 @@ export default function ClientPage() {
         {!isLoading && myJobs.length === 0 ? (
           <p className="text-sm text-muted-foreground">No jobs found for this client yet.</p>
         ) : null}
-        {myJobs.map((job) => (
-          <Card key={job.id}>
+        {myJobs.map((job, index) => (
+          <Card key={job.id} data-tour={index === 0 ? "job-stepper-card" : undefined}>
             <CardContent className="space-y-4 p-5">
               <div>
                 <p className="font-semibold text-foreground">{job.title}</p>

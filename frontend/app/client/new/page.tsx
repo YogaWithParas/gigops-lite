@@ -51,7 +51,7 @@ export default function RequestJobPage() {
 
       <Card className="max-w-2xl">
         <CardContent className="p-5">
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit} data-tour="request-job-form">
             <div className="space-y-2">
               <Label>Client</Label>
               <p className="text-sm text-foreground">{clientName || "No client selected"}</p>

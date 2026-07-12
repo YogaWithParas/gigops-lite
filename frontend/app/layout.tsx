@@ -3,7 +3,9 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { AppShell } from '@/components/app-shell'
+import { TourOverlay } from '@/components/tour-overlay'
 import { PersonaProvider } from '@/lib/persona-context'
+import { TourProvider } from '@/lib/tour-context'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -56,7 +58,10 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         <PersonaProvider>
-          <AppShell>{children}</AppShell>
+          <TourProvider>
+            <AppShell>{children}</AppShell>
+            <TourOverlay />
+          </TourProvider>
         </PersonaProvider>
         <Analytics />
         <SpeedInsights />
