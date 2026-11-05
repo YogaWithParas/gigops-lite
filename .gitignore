@@ -6,3 +6,18 @@ venv/
 .DS_Store
 
 *.tsbuildinfo
+
+# Secrets (Quote-to-Cash Bridge setup). .env.example stays tracked: it holds placeholders only.
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+
+# Salesforce CLI local state (contains org auth info)
+.sf/
+.sfdx/
+
+# Claude Code: stop-gate counter and personal local settings
+.claude/.stop-gate-count
+.claude/settings.local.json
