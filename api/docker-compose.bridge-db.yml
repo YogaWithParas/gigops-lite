@@ -1,0 +1,38 @@
+# Quote-to-Cash Bridge: local Postgres database for the sync ledger (Stage 2 onward).
+# This file starts ONLY this one database container -- it does not touch ERPNext,
+# which runs separately in Docker Desktop as the "frappe_docker" compose project.
+#
+# Usage (run from inside api/):
+#   docker compose -f docker-compose.bridge-db.yml up -d     # start
+#   docker compose -f docker-compose.bridge-db.yml down      # stop (keeps data)
+#   docker compose -f docker-compose.bridge-db.yml down -v   # stop AND delete the data volume
+#
+# Credentials come from api/.env (copy api/.env.example to api/.env first and fill in
+# a local password). Docker Compose automatically reads a .env file that sits next to
+# this compose file, so no extra flags are needed.
+
+services:
+  bridge-postgres:
+    image: postgres:16
+    container_name: gigops-bridge-postgres
+    restart: unless-stopped
+    ports:
+      # Host port 5433 (not the default 5432) so this never collides with any other
+      # local Postgres instance you may already be running on this machine.
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${BRIDGE_DB_USER}
+      POSTGRES_PASSWORD: ${BRIDGE_DB_PASSWORD}
+      POSTGRES_DB: ${BRIDGE_DB_NAME}
+    volumes:
+      # Named volume: Docker stores the database files in its own managed storage area,
+      # not in this repo folder, so they survive "docker compose down" (but not "-v").
+      - gigops_bridge_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${BRIDGE_DB_USER} -d $${BRIDGE_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  gigops_bridge_postgres_data:

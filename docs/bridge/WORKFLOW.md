@@ -34,12 +34,13 @@ Frontend (run for full-suite checks and whenever frontend/ or README.md changes)
 - `cd frontend && npm run scan:legacy` (fails if README.md, docs/ or frontend source contain old-project words; see KNOWN BASELINE ISSUES)
 - `cd frontend && npm run verify` (production build + typecheck; needs internet access to Google Fonts)
 - Route smoke test: start `cd frontend && npx next dev -p 3000`, then `npm run test:routes`.
+Postgres (stage 2 onward, sync ledger tests, this machine): a docker-compose file is committed at `api/docker-compose.bridge-db.yml`. It starts one postgres:16 container, host port 5433 (chosen to avoid clashing with any other local Postgres), with a named volume so data survives restarts. Credentials come from `api/.env` (copy `api/.env.example` and fill in a local password; `.env` is git-ignored). Start it with `cd api && docker compose -f docker-compose.bridge-db.yml up -d`. Stage 2 integration tests connect using `BRIDGE_DATABASE_URL` from `api/.env`.
 Salesforce (stage 5 onward): commands are added to this section when the salesforce/ project is created.
 
 KNOWN BASELINE ISSUES (found at setup on main @ 5c78bf3; not caused by the bridge)
 - `frontend: npm run scan:legacy` already fails on main: README.md lines 165 and 280 name the old project while describing the scan itself. A check that fails at the base commit with the same output is not a bridge regression: report it, do not fix it in a bridge stage unless Prateek says so (logged in NEEDS_YOU.md). RESOLVED on Prateek's Windows laptop (2026-11-06): Prateek approved rewording those two lines; `scan:legacy` now passes. No longer a baseline issue on this machine.
 - `frontend: npm run verify` fails in cloud sandboxes that block Google Fonts ("Failed to fetch `Geist Mono`"). That is an environment limit. In that case run typecheck plus the route smoke test, and say so in the report.
-- Docker has no running engine in cloud sandboxes, so Testcontainers will not work there. A local Postgres 16 server (`/usr/lib/postgresql/16/bin`) is available as a real Postgres for stage 2.
+- Docker has no running engine in cloud sandboxes, so Testcontainers will not work there. A local Postgres 16 server (`/usr/lib/postgresql/16/bin`) is available as a real Postgres for stage 2. On Prateek's Windows laptop Docker Desktop IS available: use the committed `api/docker-compose.bridge-db.yml` (see Postgres line above) as the default for stage 2, instead of Testcontainers or a bare local Postgres server.
 
 REPO RULES
 AGENTS.md (the repo's general agent rules) still applies. Where it conflicts with SPEC.md for bridge work (it says not to add dependencies, persistence or auth in prototype tasks), SPEC.md counts as Prateek's explicit request, but only for what the current stage needs. Keep package-lock.json changes to dependencies the stage actually uses. Never change existing GigOps routes or UI behaviour.

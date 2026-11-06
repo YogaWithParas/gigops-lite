@@ -21,7 +21,7 @@ DONE WHEN: unit tests cover every mapped field, money as integer minor units or 
 
 Stage 2: Sync ledger and idempotency
 BUILD: Postgres sync_ledger table (unique idempotency key, source and target ids, status, payload hash, attempts, timestamps, last error); migrations that follow expand/contract rules; a repository layer.
-DONE WHEN: integration tests run against a real Postgres (Docker/Testcontainers or a Neon dev branch); same key + same payload -> one record and the same result; same key + different payload -> conflict; concurrent duplicate inserts handled safely.
+DONE WHEN: integration tests run against a real Postgres -- on Prateek's machine, the committed `api/docker-compose.bridge-db.yml` (postgres:16, host port 5433; see docs/bridge/WORKFLOW.md COMMANDS); same key + same payload -> one record and the same result; same key + different payload -> conflict; concurrent duplicate inserts handled safely.
 
 Stage 3: Inbound API
 BUILD: POST /bridge/v1/deals and GET /bridge/v1/deals/:id/status. API-key auth (keys stored hashed, never in plain text), required Idempotency-Key header, Zod validation, per-key rate limiting, 202 Accepted for new work. OpenAPI spec for these endpoints. A correlation id and an OpenTelemetry span per request.
