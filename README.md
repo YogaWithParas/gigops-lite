@@ -162,7 +162,7 @@ Still mock/planned:
 * Synthetic datasets for jobs, tasks, agents, QA reviews, payouts, and audit events
 * Mock API route handlers under `frontend/app/api/*`
 * Route smoke test script for UI and API endpoints
-* Legacy-term scan script to catch leftover PEAK-Lite / education content
+* Legacy-term scan script to catch leftover old-project-name / learning-platform content
 * Agentic engineering harness with specs, guardrails, review checklist, and definition of done
 * Deployed frontend on Vercel
 
@@ -277,7 +277,7 @@ cd frontend
 npm run scan:legacy
 ```
 
-This checks source and documentation folders for old PEAK-Lite / education-related terms.
+This checks source and documentation folders for old-project-name / learning-platform-related terms.
 
 ## Architecture: Real vs Planned
 

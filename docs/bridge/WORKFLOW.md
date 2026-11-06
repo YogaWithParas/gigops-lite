@@ -37,7 +37,7 @@ Frontend (run for full-suite checks and whenever frontend/ or README.md changes)
 Salesforce (stage 5 onward): commands are added to this section when the salesforce/ project is created.
 
 KNOWN BASELINE ISSUES (found at setup on main @ 5c78bf3; not caused by the bridge)
-- `frontend: npm run scan:legacy` already fails on main: README.md lines 165 and 280 name the old project while describing the scan itself. A check that fails at the base commit with the same output is not a bridge regression: report it, do not fix it in a bridge stage unless Prateek says so (logged in NEEDS_YOU.md).
+- `frontend: npm run scan:legacy` already fails on main: README.md lines 165 and 280 name the old project while describing the scan itself. A check that fails at the base commit with the same output is not a bridge regression: report it, do not fix it in a bridge stage unless Prateek says so (logged in NEEDS_YOU.md). RESOLVED on Prateek's Windows laptop (2026-11-06): Prateek approved rewording those two lines; `scan:legacy` now passes. No longer a baseline issue on this machine.
 - `frontend: npm run verify` fails in cloud sandboxes that block Google Fonts ("Failed to fetch `Geist Mono`"). That is an environment limit. In that case run typecheck plus the route smoke test, and say so in the report.
 - Docker has no running engine in cloud sandboxes, so Testcontainers will not work there. A local Postgres 16 server (`/usr/lib/postgresql/16/bin`) is available as a real Postgres for stage 2.
 

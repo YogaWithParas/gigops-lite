@@ -55,8 +55,7 @@ Ship small, safe, readable changes that improve quality while preserving current
 
 - Do not silently change UI routes.
 - Do not silently change API route behavior.
-- Do not install dependencies unless explicitly requested.
-- Do not edit package-lock.json unless dependency changes are explicitly required.
+- Do not install dependencies, or edit any package-lock.json, unless Prateek has given explicit approval for that specific change. Record each approval under "Approved dependency/lock-file changes" below before acting on it.
 - Do not add production infra or auth wiring in prototype tasks.
 
 ## Editing Scope
@@ -70,6 +69,12 @@ Primary product source locations:
 - README.md
 
 Avoid editing generated artifacts and dependency folders.
+
+## Approved dependency/lock-file changes
+
+A log of specific exceptions Prateek has approved to the "no dependencies, no lock-file edits" rule above. Only the exact scope listed is approved; anything wider still needs to come back here first.
+
+- 2026-11-06: Approved for the Quote-to-Cash Bridge, Stage 1 only (docs/bridge/SPEC.md): add Vitest and ESLint as devDependencies inside `api/`, and update `api/package-lock.json` to match. Not installed yet as part of this setup session — Stage 1 will do the install.
 
 ## Communication Standard
 
