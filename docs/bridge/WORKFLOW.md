@@ -4,8 +4,14 @@ ROLES
 - blind-reviewer: subagent. Independent review; never sees the builder's plan or reasoning.
 - tutor: subagent. Writes a lesson for each finished stage.
 
+STOP GATE
+The Stop hook (.claude/hooks/stop-gate.cjs, a Node.js script -- see its header comment for why a Windows-reliable rewrite replaced the original bash version) blocks the session from ending ONLY while the marker file `.claude/bridge-run.on` exists. That file is git-ignored -- it is a local marker on this machine, not repo content, so it never gets committed.
+- Create it (for example `touch .claude/bridge-run.on`) as the first action of every bridge run, whether starting fresh or resuming (see step 1 of THE LOOP below).
+- Delete it before stopping for ANY reason: a BLOCKING escalation, all stages DONE, or any other point where the session is about to end. If it is not deleted, the hook keeps forcing the session to continue even after there is nothing left to do.
+- A session doing work unrelated to the bridge should simply never create this file, so the gate leaves it alone.
+
 THE LOOP FOR EACH STAGE
-1. Read PROGRESS.md, SPEC.md and NEEDS_YOU.md. Pick the first stage that is not DONE.
+1. Create `.claude/bridge-run.on` if it does not already exist. Read PROGRESS.md, SPEC.md and NEEDS_YOU.md. Pick the first stage that is not DONE.
 2. Record the base commit (git rev-parse HEAD) in PROGRESS.md.
 3. Write a 5-10 line plan in PROGRESS.md: files to touch, tests to add.
 4. Build in small steps, tests first where practical. Commit after each green step; commit messages explain why.
@@ -47,7 +53,7 @@ STOP AND ASK (BLOCKING) ONLY FOR WHAT ONLY A HUMAN CAN DO
 - deleting or overwriting real data
 - legal or employment questions
 - 3 failed review rounds, or a spec contradiction with no reasonable default
-How: first finish any work that does not depend on the blocker. Then add an entry to NEEDS_YOU.md (what, why only a human, exact numbered steps, how you will verify it), set Status to "BLOCKED: waiting on human", commit, push and stop. Your final message repeats the steps.
+How: first finish any work that does not depend on the blocker. Then add an entry to NEEDS_YOU.md (what, why only a human, exact numbered steps, how you will verify it), set Status to "BLOCKED: waiting on human", delete `.claude/bridge-run.on` (see STOP GATE above), commit, push and stop. Your final message repeats the steps.
 If a push is refused (for example, GitHub access not linked), keep the commits on the local branch, record the refusal in NEEDS_YOU.md, and continue; do not retry with other push methods.
 
 REVIEW WHEN YOU CAN (NON-BLOCKING)
@@ -61,7 +67,7 @@ NEVER
 - touch real production systems; use the dev org, the test ERPNext and local data only
 
 DONE
-All stages DONE, all tests pass, PR open. Set Status to "ALL STAGES DONE" and stop with a summary.
+All stages DONE, all tests pass, PR open. Set Status to "ALL STAGES DONE", delete `.claude/bridge-run.on` (see STOP GATE above), commit, push and stop with a summary.
 
 WRITING FOR PRATEEK
 Simple English. Define each technical term where it first appears. Story or analogy first, then the technical detail. A mermaid diagram when there is a flow.

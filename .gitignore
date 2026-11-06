@@ -6,6 +6,7 @@ venv/
 .DS_Store
 
 *.tsbuildinfo
+*.log
 
 # Secrets (Quote-to-Cash Bridge setup). .env.example stays tracked: it holds placeholders only.
 .env.*
@@ -18,6 +19,7 @@ venv/
 .sf/
 .sfdx/
 
-# Claude Code: stop-gate counter and personal local settings
+# Claude Code: stop-gate counter, the bridge-run-in-progress marker, and personal local settings
 .claude/.stop-gate-count
+.claude/bridge-run.on
 .claude/settings.local.json
