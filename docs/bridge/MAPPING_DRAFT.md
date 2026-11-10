@@ -1,5 +1,7 @@
 # Salesforce → ERPNext mapping (draft)
 
+Status: SUPERSEDED by docs/bridge/MAPPING.md as of Stage 1 (2026-11-10). This file is kept only for history; edit MAPPING.md, not this one.
+
 Status: DRAFT. Decisions 1-4 agreed with Prateek on 2026-11-07. Normalisation rules approved the same day. Decisions 5-6 approved 2026-11-10. All decisions made; ready for Stage 1.
 Stage 1 turns this file into docs/bridge/MAPPING.md. SPEC.md stages 5-7 must be aligned with the field list in Decision 6. Personal portfolio project.
 

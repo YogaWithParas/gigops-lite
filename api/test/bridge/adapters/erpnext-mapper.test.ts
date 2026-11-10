@@ -46,6 +46,15 @@ describe("mapCustomerToErpPayload", () => {
       },
     });
   });
+
+  it("falls back to the raw country code when it has no ERPNext country name mapped yet", () => {
+    const customer = dealToCustomer(validDeal());
+    const result = mapCustomerToErpPayload({
+      ...customer,
+      billingAddress: { ...customer.billingAddress, country: "US" },
+    });
+    expect(result.customer_primary_address.country).toBe("US");
+  });
 });
 
 describe("mapInvoiceToErpPayload", () => {

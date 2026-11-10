@@ -19,6 +19,10 @@ describe("centsFromDecimal", () => {
     expect(centsFromDecimal("4.5")).toEqual({ ok: true, value: 450 });
   });
 
+  it("preserves a negative sign", () => {
+    expect(centsFromDecimal("-19.99")).toEqual({ ok: true, value: -1999 });
+  });
+
   it("rejects more than two decimal places with a clear message", () => {
     const result = centsFromDecimal("10.555");
     expect(result.ok).toBe(false);
@@ -41,6 +45,10 @@ describe("decimalFromCents", () => {
 
   it("pads a single-digit cent amount", () => {
     expect(decimalFromCents(1005)).toBe(10.05);
+  });
+
+  it("preserves a negative sign", () => {
+    expect(decimalFromCents(-1999)).toBe(-19.99);
   });
 
   it("round-trips with centsFromDecimal", () => {

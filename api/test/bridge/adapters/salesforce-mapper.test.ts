@@ -149,6 +149,63 @@ describe("mapOpportunityToDeal", () => {
     }
   });
 
+  it("rejects a line with a zero or negative quantity", () => {
+    const lineItems: RawSalesforceOpportunityLineItem[] = [
+      { ProductCode: "WIDGET-01", Quantity: 0, UnitPrice: 625, Description: "Widget", TotalPrice: 0 },
+    ];
+    const result = mapOpportunityToDeal(validOpportunity(), validAccount(), lineItems);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain("Product WIDGET-01 must have a quantity greater than 0");
+    }
+  });
+
+  it("rejects a line with no unit price", () => {
+    const lineItems: RawSalesforceOpportunityLineItem[] = [
+      { ProductCode: "WIDGET-01", Quantity: 2, Description: "Widget", TotalPrice: 1250 },
+    ];
+    const result = mapOpportunityToDeal(validOpportunity(), validAccount(), lineItems);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain("Product WIDGET-01 has no unit price");
+    }
+  });
+
+  it("rejects a line with a discount percentage outside 0-100", () => {
+    const lineItems: RawSalesforceOpportunityLineItem[] = [
+      { ProductCode: "WIDGET-01", Quantity: 2, UnitPrice: 625, Discount: 150, Description: "Widget", TotalPrice: 1250 },
+    ];
+    const result = mapOpportunityToDeal(validOpportunity(), validAccount(), lineItems);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain("Product WIDGET-01 has an invalid discount percentage (150)");
+    }
+  });
+
+  it("rejects a line with no description and no product name to fall back to", () => {
+    const lineItems: RawSalesforceOpportunityLineItem[] = [
+      { ProductCode: "WIDGET-01", Quantity: 2, UnitPrice: 625, TotalPrice: 1250 },
+    ];
+    const result = mapOpportunityToDeal(validOpportunity(), validAccount(), lineItems);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain(
+        "Product WIDGET-01 has no description and no product name to use as a fallback",
+      );
+    }
+  });
+
+  it("rejects a line with no TotalPrice to verify against", () => {
+    const lineItems: RawSalesforceOpportunityLineItem[] = [
+      { ProductCode: "WIDGET-01", Quantity: 2, UnitPrice: 625, Description: "Widget" },
+    ];
+    const result = mapOpportunityToDeal(validOpportunity(), validAccount(), lineItems);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain("Product WIDGET-01 is missing a TotalPrice to verify against");
+    }
+  });
+
   it("rejects when the sum of line totals does not match the Opportunity Amount", () => {
     const opportunity: RawSalesforceOpportunity = { ...validOpportunity(), Amount: 9999 };
     const result = mapOpportunityToDeal(opportunity, validAccount(), validLineItems());
