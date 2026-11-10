@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centsFromDecimal, normaliseCurrencyCode } from "../../../src/bridge/domain/money";
+import { centsFromDecimal, decimalFromCents, normaliseCurrencyCode } from "../../../src/bridge/domain/money";
 
 describe("centsFromDecimal", () => {
   it("converts a decimal dollar amount to integer cents", () => {
@@ -31,6 +31,22 @@ describe("centsFromDecimal", () => {
   it("rejects a non-numeric value", () => {
     const result = centsFromDecimal("ten dollars");
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("decimalFromCents", () => {
+  it("converts integer cents back to a decimal dollar amount", () => {
+    expect(decimalFromCents(125050)).toBe(1250.5);
+  });
+
+  it("pads a single-digit cent amount", () => {
+    expect(decimalFromCents(1005)).toBe(10.05);
+  });
+
+  it("round-trips with centsFromDecimal", () => {
+    const result = centsFromDecimal("1250.50");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(decimalFromCents(result.value)).toBe(1250.5);
   });
 });
 
