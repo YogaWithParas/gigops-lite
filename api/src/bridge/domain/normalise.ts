@@ -96,10 +96,17 @@ export function normaliseCompanyNameKey(raw: string): string {
   return words.join("");
 }
 
-// The display value: only extra whitespace is trimmed/collapsed, never
-// shown to a user in its normalised-key form.
-export function normaliseCompanyNameDisplay(raw: string): string {
+// Trims and collapses extra whitespace, changing nothing else. Used for any
+// display value (company name, street, city, line description) where the
+// original wording must be kept -- only formatting noise is removed.
+export function collapseWhitespace(raw: string): string {
   return raw.trim().replace(/\s+/g, " ");
+}
+
+// The display value for a company name: only extra whitespace is
+// trimmed/collapsed, never shown to a user in its normalised-key form.
+export function normaliseCompanyNameDisplay(raw: string): string {
+  return collapseWhitespace(raw);
 }
 
 // Product codes are trimmed only -- otherwise an exact match against the

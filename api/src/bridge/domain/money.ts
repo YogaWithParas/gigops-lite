@@ -1,12 +1,14 @@
+import { z } from "zod";
 import { err, ok, type Result } from "./result";
 
 // Money is always an integer number of minor units (cents) plus an ISO 4217
 // currency code -- never a float, never a bare number. See
 // docs/bridge/MAPPING.md, Decision 2.
-export interface Money {
-  amountCents: number;
-  currency: string;
-}
+export const moneySchema = z.object({
+  amountCents: z.number().int(),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+});
+export type Money = z.infer<typeof moneySchema>;
 
 const DECIMAL_AMOUNT_PATTERN = /^(-?)(\d+)(?:\.(\d{1,2}))?$/;
 
@@ -45,4 +47,16 @@ export function normaliseCurrencyCode(raw: string): Result<string> {
   }
 
   return err(`Unrecognised currency: "${raw}"`);
+}
+
+// The inverse of centsFromDecimal: ERPNext's APIs expect decimal major
+// units (e.g. 1250.5), not cents. Built from integer arithmetic plus a
+// string join, never a float division, so 125050 always becomes exactly
+// 1250.5.
+export function decimalFromCents(cents: number): number {
+  const sign = cents < 0 ? "-" : "";
+  const absoluteCents = Math.abs(cents);
+  const whole = Math.floor(absoluteCents / 100);
+  const fraction = (absoluteCents % 100).toString().padStart(2, "0");
+  return Number(`${sign}${whole}.${fraction}`);
 }
