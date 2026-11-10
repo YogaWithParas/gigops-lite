@@ -75,6 +75,7 @@ Avoid editing generated artifacts and dependency folders.
 A log of specific exceptions Prateek has approved to the "no dependencies, no lock-file edits" rule above. Only the exact scope listed is approved; anything wider still needs to come back here first.
 
 - 2026-11-06: Approved for the Quote-to-Cash Bridge, Stage 1 only (docs/bridge/SPEC.md): add Vitest and ESLint as devDependencies inside `api/`, and update `api/package-lock.json` to match. Not installed yet as part of this setup session — Stage 1 will do the install.
+- 2026-11-10: Installed under the above approval, Stage 1: `vitest`, `@vitest/coverage-v8` (coverage reporting), `eslint`, `@eslint/js`, `typescript-eslint` (ESLint's flat-config TypeScript setup). All are devDependencies inside `api/`, with `api/package-lock.json` updated to match -- standard, necessary parts of the two approved tools, not a wider scope.
 
 ## Communication Standard
 
