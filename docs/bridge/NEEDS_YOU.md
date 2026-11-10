@@ -21,6 +21,24 @@ How I will verify: Stage 4's documented manual run against the dev ERPNext (per 
 - CHANGED on Prateek's Windows laptop (2026-11-06): the stop gate no longer reads PROGRESS.md Status at all. Prateek asked for a narrower scope: it now blocks ending the session ONLY while the marker file `.claude/bridge-run.on` exists (git-ignored; see the STOP GATE section of WORKFLOW.md). A session doing unrelated work simply never creates that file, so the gate leaves it alone -- no more need to flip Status or use /hooks to work around it. The hook itself was also rewritten from bash (stop-gate.sh) to Node.js (stop-gate.cjs): on Windows, cmd.exe cannot run the old $CLAUDE_PROJECT_DIR-based bash command, and running the .sh file directly just opened a detached Git Bash window instead of returning the JSON reply the Stop hook needs. The new command (`node -e "require(process.env.CLAUDE_PROJECT_DIR + '/.claude/hooks/stop-gate.cjs')"`) avoids both bash's $VAR and cmd's %VAR% syntax, so it runs the same way on Windows, macOS and Linux.
 - The Read deny rules stop the Read tool, but not a shell command such as `cat`. The real protection is the NEVER rules and keeping real secrets out of the repo folder where possible.
 - Commits are authored as "Prateek Bablani" (this machine's git identity). If you want a different author, tell me; I will not change it without asking.
+- Aligned SPEC.md stages 4-7 with docs/bridge/MAPPING_DRAFT.md now that Decisions 5-6 are approved (2026-11-10):
+  - Stage 4: added that Sales Invoices are created as Draft by default, and are submitted automatically only when `BRIDGE_AUTO_SUBMIT` is true and every check passed (Decision 5); added a DONE WHEN test for both paths.
+  - Stage 5: expanded the Salesforce field list to match Decision 6 in full -- added `ERP_Customer_Id__c` (Account) and `Invoice_Total__c`, `Balance_Due__c`, `Invoice_Due_Date__c`, `Sync_Status__c` (Opportunity), which the old Stage 5 line omitted.
+  - Stage 6: added that the webhook handler writes the full Decision 6 field set (not just status), including the ERPNext-to-Salesforce status translation table and its "Unknown + alert" fallback for unrecognised values; added a matching DONE WHEN test.
+  - Stage 7: clarified that "amount mismatch" means the pre-tax (net) total, matching Decision 2 -- never the tax-inclusive grand total; added that the same nightly run refreshes every open invoice's Salesforce status fields, per Decision 6's Timing note that time-based changes (e.g. Overdue) may not send a webhook event; added a matching DONE WHEN test.
+  - Only wording that the draft required changed; no new stages or scope were added.
+
+### Stage 4 setup needed before Stage 4 (Prateek, via the ERPNext UI; copied from MAPPING_DRAFT.md, not blocking yet)
+- An Item for every product code used in tests.
+- Sales Taxes and Charges Templates and Tax Rules per province.
+- Custom field `salesforce_account_id` (unique) on Customer.
+- Selling Settings: Customer Naming By = Naming Series.
+- Company currency CAD; rounded total disabled for bridge invoices.
+- A Payment Terms Template named "Net 30" (the default for customers without their own terms).
+
+### Stage 5 setup needed before Stage 5 (Prateek; copied from MAPPING_DRAFT.md, not blocking yet)
+- Enable State and Country/Territory Picklists in the Salesforce Developer Edition org.
+- (The custom fields listed in SPEC.md Stage 5 are created by the Stage 5 Salesforce DX project itself, not by hand.)
 
 ## Done
 - Setup checkpoint: review the harness before Stage 1 (opened 2026-11-05, done 2026-11-06). Resolved by finishing the rest of setup on Prateek's Windows laptop (Windows-reliable stop gate, local bridge Postgres, local ERPNext confirmed) and pushing feature/sf-bridge; Prateek reviews docs/bridge/NEEDS_YOU.md defaults as the first action of Stage 1.
