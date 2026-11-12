@@ -53,13 +53,25 @@ export function normaliseCurrencyCode(raw: string): Result<string> {
 // The inverse of centsFromDecimal: ERPNext's APIs expect decimal major
 // units (e.g. 1250.5), not cents. Built from integer arithmetic plus a
 // string join, never a float division, so 125050 always becomes exactly
-// 1250.5.
+// 1250.5. At very large amounts the exact decimal string has more
+// significant digits than a JS double (the return type) can hold, so
+// Number() would silently round it -- e.g. 90071992547409.91 and
+// 90071992547409.90 would both become 90071992547409.9, losing a cent.
+// Detect that by parsing the result back with centsFromDecimal (the
+// same exact, string-based arithmetic used to build it): if it does not
+// land on the original cents, fail loudly instead of returning a
+// silently rounded amount.
 export function decimalFromCents(cents: number): number {
   const sign = cents < 0 ? "-" : "";
   const absoluteCents = Math.abs(cents);
   const whole = Math.floor(absoluteCents / 100);
   const fraction = (absoluteCents % 100).toString().padStart(2, "0");
-  return Number(`${sign}${whole}.${fraction}`);
+  const decimal = Number(`${sign}${whole}.${fraction}`);
+  const roundTrip = centsFromDecimal(decimal);
+  if (!roundTrip.ok || roundTrip.value !== cents) {
+    throw new Error(`Money amount of ${cents} cents cannot be represented exactly as a decimal number; amount is too large`);
+  }
+  return decimal;
 }
 
 // Treat decimal quantity/discount inputs as exact ratios; round once, half up.

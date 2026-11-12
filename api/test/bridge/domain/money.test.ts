@@ -56,6 +56,14 @@ describe("decimalFromCents", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(decimalFromCents(result.value)).toBe(1250.5);
   });
+
+  it("fails loudly instead of silently losing a cent on very large amounts", () => {
+    // 90071992547409.91 has more significant digits than a JS double can
+    // hold exactly, so Number() on that string silently rounds to
+    // 90071992547409.9 -- the same lossy value 9007199254740990 cents
+    // would also produce. Losing a cent must throw, never return a number.
+    expect(() => decimalFromCents(Number.MAX_SAFE_INTEGER)).toThrow(/cannot be represented exactly/);
+  });
 });
 
 describe("normaliseCurrencyCode", () => {
