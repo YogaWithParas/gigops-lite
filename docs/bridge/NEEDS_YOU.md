@@ -1,5 +1,8 @@
 # Needs you
-## Blocking (work is paused until these are done)
+## Blocking now
+None. Stage 1 is complete; Stage 2 is not authorized in this run.
+
+## Future setup (not blocking Stage 1)
 
 ### 1. Stage 4: create the ERPNext integration user and its API key/secret (2026-11-06)
 What: Stage 4 (the ERPNext writer) needs to call the ERPNext REST API as a dedicated user, not your personal admin login. This is NOT blocking right now (Stage 4 is several stages away) -- it is logged here now so it is ready when that stage starts.
@@ -12,9 +15,8 @@ Steps (when Stage 4 is reached):
 How I will verify: Stage 4's documented manual run against the dev ERPNext (per SPEC.md) succeeds using those credentials, with no key/secret value appearing in any committed file or log.
 
 ## Review when you can (work continued with a default)
-- ERPNext runs locally in Docker Desktop (compose project "frappe_docker", image frappe/erpnext:v16.30.0, database mariadb:11.8). Nine containers are up; two one-time setup helpers (`configurator-1`, `create-site-1`) show "Exited (0)" from the original setup and that is expected, not a problem. Only `frontend-1` publishes a port (8080), confirmed reachable: `curl http://localhost:8080/api/method/ping` -> `{"message":"pong"}`. `ERPNEXT_URL=http://localhost:8080` is recorded in `docs/bridge/WORKFLOW.md` and `api/.env.example` (no secrets). No port clash with the bridge Postgres (5433) or GigOps (3000, 4000). See the Stage 4 blocking item under "Blocking" for what is still needed from you (the integration user and its key/secret).
+- ERPNext runs locally in Docker Desktop (compose project "frappe_docker", image frappe/erpnext:v16.30.0, database mariadb:11.8). Nine containers are up; two one-time setup helpers (`configurator-1`, `create-site-1`) show "Exited (0)" from the original setup and that is expected, not a problem. Only `frontend-1` publishes a port (8080), confirmed reachable: `curl http://localhost:8080/api/method/ping` -> `{"message":"pong"}`. `ERPNEXT_URL=http://localhost:8080` is recorded in `docs/bridge/WORKFLOW.md` and `api/.env.example` (no secrets). No port clash with the bridge Postgres (5433) or GigOps (3000, 4000). See the Stage 4 integration-user item under "Future setup" for what is still needed from you (the integration user and its key/secret).
 - Optimistic concurrency does not exist yet either. The current idempotency is an in-memory simulation on POST /jobs (api/src/lib/idempotency.ts). The bridge builds both from scratch in stages 2 and 4.
-- There is no unit test runner and no linter. Today "tests" means smoke scripts that need a running server. Default: Stage 1 adds Vitest (`npm test`) and ESLint (`npm run lint`) as free devDependencies in api/, which changes api/package-lock.json. AGENTS.md normally forbids that; WORKFLOW's REPO RULES treat SPEC.md as your explicit request.
 - Stage 2 Postgres: on this machine, the default is the committed `api/docker-compose.bridge-db.yml` (postgres:16, host port 5433) -- see docs/bridge/WORKFLOW.md. Cloud sessions without Docker fall back to a local Postgres 16 server. Testcontainers or a Neon dev branch remain options if ever needed, but are not the default.
 - `frontend: npm run scan:legacy` passes (Prateek approved rewording README.md lines 165 and 280, which had named the old project while describing the scan itself).
 - `frontend: npm run verify` passes on this machine. It fails only in cloud sandboxes where Google Fonts is blocked; typecheck and the route smoke test still pass there.

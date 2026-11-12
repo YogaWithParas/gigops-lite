@@ -27,7 +27,7 @@ There is no root package.json. Run commands inside api/ or frontend/. If node_mo
 API (all bridge code lives here):
 - `cd api && npm run typecheck`
 - `cd api && npm run build` (then delete api/dist; it is git-ignored but should not linger)
-- `cd api && npm test` and `cd api && npm run lint`: these scripts do not exist yet. Stage 1 adds them (Vitest for tests, ESLint for lint). From then on they are part of every self-check and every review.
+- `cd api && npm test` (Vitest) and `cd api && npm run lint` (ESLint): Stage 1 added these scripts; run both for every self-check and review.
 - Smoke test: start the API with `cd api && npm run dev` (port 4000), then in another shell `cd api && npm run smoke:test`.
 Frontend (run for full-suite checks and whenever frontend/ or README.md changes):
 - `cd frontend && npm run typecheck`
