@@ -59,3 +59,8 @@ How I will verify: Stage 4's documented manual run against the dev ERPNext (per 
 - Sync ledger id is a plain `serial` (int4), not `bigserial` -- node-postgres returns int8 columns as strings, which would force string ids on every caller for no benefit at this prototype's scale.
 - `bridge_settings` is a JSONB snapshot of Decision 5's four settings, with Stage 2's own defaults (same as MAPPING.md's table). Reading these from real environment variables and refusing to start the service on an invalid value is Stage 3/4's job, once there is an actual running service to refuse to start.
 - Migrations are a small hand-written `.sql`-file runner (api/src/bridge/ledger/migrate.ts), not a library -- kept to the one new dependency (`pg`) this stage actually needs. A Postgres advisory lock serialises concurrent runs.
+- Stage 2 round-1 blind review: PASS, 4 MINOR/informational items left open (see docs/bridge/reviews/stage-2-round-1.md), none blocking:
+  1. `hashPayload` (ledger/hash.ts) would silently treat two different `Date` objects as the same payload -- not reachable today (the domain model only ever stores dates as ISO strings), but worth a fix if a later stage ever passes a `Date` into it directly.
+  2. One defensive, near-impossible-to-hit line in `repository.ts` (`recordSync`'s post-conflict re-select finding nothing) stays untested -- same category as Stage 1's similar items.
+  3. `updateStatus` clears `last_error` back to null on any status change unless the caller re-passes it -- fine today since Stage 4 (the real caller) doesn't exist yet, but worth remembering once retry logic is built on top.
+  4. Repeated from above: the Stage 1 round-3 review is still open.
