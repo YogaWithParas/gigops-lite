@@ -52,7 +52,9 @@ How I will verify: Stage 4's documented manual run against the dev ERPNext (per 
 - Owner branch publishing remains subject to your explicit approval; this run will not push it.
 
 - Secret scan: 195 unique committed blobs reachable from wip/erpnext-owner checked for private keys, provider tokens, credential assignments and password URLs. Three matches classified as two placeholders and one environment lookup; no confirmed secrets. Pattern-only scan, not a guarantee.
-- Closed the two outstanding Stage 1 MINOR items you asked for (decimalFromCents precision at large amounts; the ERPNext mapper fixture's inconsistent totals) -- see docs/bridge/PROGRESS.md for the detail and commit SHAs.
+- Closed the two outstanding Stage 1 MINOR items you asked for (decimalFromCents precision at large amounts; the ERPNext mapper fixture's inconsistent totals) -- see docs/bridge/PROGRESS.md for the detail and commit SHAs. (2026-11-12) Now also independently blind-reviewed, scoped to exactly those two commits: PASS, see docs/bridge/reviews/stage-1-followup.md. Two new MINOR items from that review, both non-blocking:
+  1. `decimalFromCents` (money.ts) throws a raw `Error` on its precision-loss edge case instead of the file's usual `Result<T>` (`ok`/`err`) pattern. Harmless today -- its one call site (`erpnext/mapper.ts:43`) has no caller yet, since Stage 4's worker is unbuilt -- but Stage 4 should catch-and-flag this rather than let it crash the worker, given the rest of the file's error-handling convention.
+  2. (Informational, already resolved by this update) PROGRESS.md/NEEDS_YOU.md hadn't yet recorded these two follow-up commits or the resulting 94-test count at the time of the review.
 - Not yet closed: the verification round-2 CHANGES REQUIRED fix (`6ba5120`, domain-level invariant enforcement on Deal/Invoice) was never confirmed by a round-3 blind review, which WORKFLOW.md's loop calls for after any MAJOR fix. Flagging this so it isn't lost -- Stage 2 was built on top of that fix as given.
 
 ### Stage 2 defaults to review (2026-11-11)
