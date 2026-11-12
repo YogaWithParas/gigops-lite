@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { mapCustomerToErpPayload, mapInvoiceToErpPayload } from "../../../src/bridge/adapters/erpnext/mapper";
-import { dealToCustomer, dealToInvoice, type Deal } from "../../../src/bridge/domain/deal";
+import { dealSchema, dealToCustomer, dealToInvoice, type Deal } from "../../../src/bridge/domain/deal";
 
+// Parsed through dealSchema, not just typed as Deal: a literal object can
+// satisfy the TypeScript shape while still breaking a runtime invariant
+// (e.g. amount not equal to the sum of line totals) that superRefine checks
+// -- that bug is exactly what this fixture once had. Parsing it the same
+// way the mapper does means a future edit that breaks a total fails the
+// test suite immediately, with Zod's own message, instead of passing
+// silently on bad data.
 function validDeal(): Deal {
-  return {
+  return dealSchema.parse({
     salesforceOpportunityId: "006000000000001AAA",
     accountId: "001000000000001AAA",
     accountName: "Acme Ltd.",
@@ -16,7 +23,9 @@ function validDeal(): Deal {
     },
     closeDate: "2026-11-07",
     currency: "CAD",
-    amount: { amountCents: 125000, currency: "CAD" },
+    // 2 x $625.00 less a 10% discount = $1125.00 -- must equal the sum of
+    // line totals below, or dealSchema's own invariant check rejects it.
+    amount: { amountCents: 112500, currency: "CAD" },
     lines: [
       {
         productCode: "WIDGET-01",
@@ -27,7 +36,7 @@ function validDeal(): Deal {
         lineTotal: { amountCents: 112500, currency: "CAD" },
       },
     ],
-  };
+  });
 }
 
 describe("mapCustomerToErpPayload", () => {
