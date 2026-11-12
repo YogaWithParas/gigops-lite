@@ -60,3 +60,28 @@ export function decimalFromCents(cents: number): number {
   const fraction = (absoluteCents % 100).toString().padStart(2, "0");
   return Number(`${sign}${whole}.${fraction}`);
 }
+
+// Treat decimal quantity/discount inputs as exact ratios; round once, half up.
+function decimalRatio(value: number): [bigint, bigint] {
+  const [mantissa, exponent = "0"] = value.toString().toLowerCase().split("e");
+  const [whole, fraction = ""] = mantissa.split(".");
+  const scale = fraction.length - Number(exponent);
+  const numerator = BigInt(whole + fraction);
+  return scale >= 0
+    ? [numerator, 10n ** BigInt(scale)]
+    : [numerator * 10n ** BigInt(-scale), 1n];
+}
+
+export function calculateLineTotalCents(quantity: number, unitPriceCents: number, discount: number): Result<number> {
+  if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isSafeInteger(unitPriceCents) || unitPriceCents < 0 ||
+      !Number.isFinite(discount) || discount < 0 || discount > 100) {
+    return err("Line quantity, price or discount is invalid or outside the supported range");
+  }
+  const [q, qs] = decimalRatio(quantity);
+  const [d, ds] = decimalRatio(discount);
+  const numerator = q * BigInt(unitPriceCents) * (100n * ds - d);
+  const denominator = qs * 100n * ds;
+  const rounded = (2n * numerator + denominator) / (2n * denominator);
+  const cents = Number(rounded);
+  return Number.isSafeInteger(cents) ? ok(cents) : err("Line total exceeds the supported safe integer range");
+}

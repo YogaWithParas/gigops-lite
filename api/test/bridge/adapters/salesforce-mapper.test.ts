@@ -246,3 +246,20 @@ describe("mapOpportunityToDeal", () => {
     }
   });
 });
+
+it("rejects a deal paired with a different account", () => {
+  const result = mapOpportunityToDeal({ ...validOpportunity(), AccountId: "001000000000002AAA" }, validAccount(), validLineItems());
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors).toContain("Opportunity AccountId does not match Account Id");
+});
+
+it.each([
+  [1, 0.05, 90, 0.01],
+  [0.1, 0.05, 0, 0.01],
+  [3, 0.10, 5, 0.29],
+])("rounds exact decimal line totals once: %s x %s less %s percent", (quantity, price, discount, total) => {
+  const result = mapOpportunityToDeal({ ...validOpportunity(), Amount: total }, validAccount(), [
+    { ...validLineItems()[0], Quantity: quantity, UnitPrice: price, Discount: discount, TotalPrice: total },
+  ]);
+  expect(result.ok).toBe(true);
+});

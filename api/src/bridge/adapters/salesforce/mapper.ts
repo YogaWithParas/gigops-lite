@@ -1,5 +1,5 @@
 import { dealSchema, type Deal, type DealLine } from "../../domain/deal";
-import { centsFromDecimal, normaliseCurrencyCode } from "../../domain/money";
+import { calculateLineTotalCents, centsFromDecimal, normaliseCurrencyCode } from "../../domain/money";
 import {
   collapseWhitespace,
   normaliseCountry,
@@ -26,6 +26,9 @@ export function mapOpportunityToDeal(
   if (!opportunity.AccountId) errors.push("Missing: Opportunity AccountId");
   if (!account.Id) errors.push("Missing: Account Id");
   else if (account.Id.length !== 18) errors.push(`Account Id must be 18 characters (got "${account.Id}")`);
+  if (opportunity.AccountId && account.Id && opportunity.AccountId !== account.Id) {
+    errors.push("Opportunity AccountId does not match Account Id");
+  }
   if (!account.Name) errors.push("Missing: Account Name");
 
   let closeDate: string | undefined;
@@ -148,7 +151,12 @@ export function mapOpportunityToDeal(
       continue; // already reported above; cannot build or verify this line
     }
 
-    const lineTotalCents = Math.round(item.Quantity! * unitPriceCents! * (1 - discountPercent / 100));
+    const calculated = calculateLineTotalCents(item.Quantity!, unitPriceCents!, discountPercent);
+    if (!calculated.ok) {
+      errors.push(...calculated.errors);
+      continue;
+    }
+    const lineTotalCents = calculated.value;
     const reportedTotal = centsFromDecimal(item.TotalPrice!);
     if (!reportedTotal.ok) {
       errors.push(...reportedTotal.errors);

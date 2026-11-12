@@ -179,3 +179,8 @@ Not built yet: all of Decision 6 is Stages 5-7 (Salesforce fields and Apex, the 
 - Selling Settings: Customer Naming By = Naming Series.
 - Company currency CAD; rounded total disabled for bridge invoices.
 - A Payment Terms Template named "Net 30" (the default for customers without their own terms).
+
+### Stage 1 verification follow-up
+- Opportunity.AccountId must equal the supplied Account.Id; mismatches are rejected before any payload is produced.
+- Line totals use exact decimal ratios and round once to cents, half up. This preserves the intended rounding rule without binary floating-point discount errors.
+

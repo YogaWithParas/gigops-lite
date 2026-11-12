@@ -83,3 +83,14 @@ describe("normaliseCurrencyCode", () => {
     }
   });
 });
+
+import { calculateLineTotalCents } from "../../../src/bridge/domain/money";
+
+describe("exact line totals", () => {
+  it.each([[1, 5, 90, 1], [0.1, 5, 0, 1], [1, 100, 12.5, 88], [1e-7, 5000000, 0, 1], [1, 100, 100, 0]])("rounds %s x %s at %s percent", (q, p, d, total) => {
+    expect(calculateLineTotalCents(q, p, d)).toEqual({ ok: true, value: total });
+  });
+  it.each([[Infinity, 1, 0], [1, -1, 0], [1, 1, NaN], [1, 1, 101], [Number.MAX_VALUE, 100, 0]])("rejects invalid or unsafe arithmetic", (q, p, d) => {
+    expect(calculateLineTotalCents(q, p, d).ok).toBe(false);
+  });
+});

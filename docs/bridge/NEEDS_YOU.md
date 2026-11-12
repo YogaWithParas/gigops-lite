@@ -45,3 +45,10 @@ How I will verify: Stage 4's documented manual run against the dev ERPNext (per 
 ## Done
 - Setup checkpoint: review the harness before Stage 1 (opened 2026-11-05, done 2026-11-06). Resolved by finishing the rest of setup on Prateek's Windows laptop (Windows-reliable stop gate, local bridge Postgres, local ERPNext confirmed) and pushing feature/sf-bridge; Prateek reviews docs/bridge/NEEDS_YOU.md defaults as the first action of Stage 1.
 - Push refused: GitHub access not linked (opened 2026-11-05, done 2026-11-06). Resolved: `git push -u origin feature/sf-bridge` succeeded directly from this machine, no reconnect needed.
+
+### Stage 1 verification defaults to review (2026-11-11)
+- Exact line calculations retain half-up rounding to cents; fractional quantities and discounts are supported. Negative prices and totals outside safe integer range are rejected.
+- The owner branch preserves e675d29 (21 files, 1001 insertions, 22 deletions), dated November 6. An August 1 origin cannot be confirmed from that commit.
+- Owner branch publishing remains subject to your explicit approval; this run will not push it.
+
+- Secret scan: 195 unique committed blobs reachable from wip/erpnext-owner checked for private keys, provider tokens, credential assignments and password URLs. Three matches classified as two placeholders and one environment lookup; no confirmed secrets. Pattern-only scan, not a guarantee.
