@@ -94,3 +94,9 @@ describe("exact line totals", () => {
     expect(calculateLineTotalCents(q, p, d).ok).toBe(false);
   });
 });
+
+it("converts the safe integer boundary exactly and rejects overflow", () => {
+  expect(centsFromDecimal("90071992547409.91")).toEqual({ ok: true, value: Number.MAX_SAFE_INTEGER });
+  expect(centsFromDecimal("90071992547409.92").ok).toBe(false);
+  expect(centsFromDecimal("9007199254740993.01").ok).toBe(false);
+});

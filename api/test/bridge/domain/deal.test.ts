@@ -76,3 +76,31 @@ describe("dealToInvoice", () => {
     });
   });
 });
+
+import { customerSchema, invoiceSchema } from "../../../src/bridge/domain/deal";
+
+it.each(["2026-02-30", "2026-13-01"])("rejects impossible date %s", (closeDate) => {
+  expect(dealSchema.safeParse({ ...validDeal(), closeDate }).success).toBe(false);
+});
+it.each([{ province: "ZZ" }, { postalCode: "invalid" }, { country: "US" }])("rejects invalid addresses at every domain boundary", (bad) => {
+  const deal = validDeal(); deal.billingAddress = { ...deal.billingAddress, ...bad };
+  const customer = dealToCustomer(deal);
+  expect(dealSchema.safeParse(deal).success).toBe(false);
+  expect(customerSchema.safeParse(customer).success).toBe(false);
+  expect(invoiceSchema.safeParse(dealToInvoice(deal, customer)).success).toBe(false);
+});
+it.each(["amount", "unitPrice", "lineTotal", "sum", "lineCalculation"])("rejects inconsistent %s in deals and invoices", (field) => {
+  const deal = validDeal();
+  if (field === "amount") deal.amount.currency = "USD";
+  if (field === "unitPrice") deal.lines[0].unitPrice.currency = "EUR";
+  if (field === "lineTotal") deal.lines[0].lineTotal.currency = "JPY";
+  if (field === "sum") deal.amount.amountCents++;
+  if (field === "lineCalculation") deal.lines[0].quantity++;
+  expect(dealSchema.safeParse(deal).success).toBe(false);
+  expect(invoiceSchema.safeParse(dealToInvoice(deal, dealToCustomer(deal))).success).toBe(false);
+});
+it("accepts a valid customer and invoice", () => {
+  const deal = validDeal(); const customer = dealToCustomer(deal);
+  expect(customerSchema.safeParse(customer).success).toBe(true);
+  expect(invoiceSchema.safeParse(dealToInvoice(deal, customer)).success).toBe(true);
+});

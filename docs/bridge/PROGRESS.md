@@ -16,3 +16,12 @@ Current stage: 1 DONE; next is Stage 2 (sync ledger and idempotency), not starte
 
 ## Stage 1 plan (base c5bb8d0) -- for reference, now complete
 Files touched: `api/package.json`/`package-lock.json` (Vitest + ESLint devDependencies, approved exception); `api/src/bridge/domain/{money,normalise,deal,result}.ts`; `api/src/bridge/adapters/{salesforce,erpnext}/{types,mapper}.ts`; `api/test/bridge/**`; `docs/bridge/MAPPING.md`; `api/eslint.config.mjs`. Scope was exactly SPEC.md Stage 1's DONE WHEN -- no tax, no customer matching/find-or-create, no draft/submit, no persistence. Those stay documented only in MAPPING.md for later stages.
+
+## Stage 1 verification continuation (2026-11-11)
+Base at resume: 4a598bfb567cb791ab6f79c71b0d1f979ce074d0; matched origin/feature/sf-bridge before changes.
+Plan: preserve completed housekeeping and Stage 1 commits; correct stale workflow headings; rescan owner history; independently review Stage 1; add regression tests before any fixes; rerun checks; update lesson and report; push only feature/sf-bridge; remove run marker and stop without Stage 2.
+- aa1f157: housekeeping corrections only.
+- 0a08d23: exact decimal line totals and AccountId consistency; new regression tests first failed (2 failures), then 81 total tests passed.
+- Fresh verification round 1: CHANGES REQUIRED, two MAJOR findings. Round 2 pending.
+
+- Verification round 2: one MAJOR domain-validation gap and one MINOR oversized-conversion defect. Added 12 cases first (11 failed, one valid control passed); implemented shared schema invariants and exact safe-range conversion. Now 93 tests pass.

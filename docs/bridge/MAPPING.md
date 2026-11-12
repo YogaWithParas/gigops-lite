@@ -183,4 +183,3 @@ Not built yet: all of Decision 6 is Stages 5-7 (Salesforce fields and Apex, the 
 ### Stage 1 verification follow-up
 - Opportunity.AccountId must equal the supplied Account.Id; mismatches are rejected before any payload is produced.
 - Line totals use exact decimal ratios and round once to cents, half up. This preserves the intended rounding rule without binary floating-point discount errors.
-

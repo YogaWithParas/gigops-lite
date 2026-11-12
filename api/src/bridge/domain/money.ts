@@ -23,8 +23,9 @@ export function centsFromDecimal(value: number | string): Result<number> {
   }
 
   const [, sign, whole, fraction = ""] = match;
-  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-  return ok(sign === "-" ? -cents : cents);
+  const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0"));
+  if (cents > BigInt(Number.MAX_SAFE_INTEGER)) return err("Money amount exceeds the supported safe integer range");
+  return ok(Number(sign === "-" ? -cents : cents));
 }
 
 const CURRENCY_ALIASES: Record<string, string> = {
