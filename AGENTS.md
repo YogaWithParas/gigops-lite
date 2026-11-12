@@ -76,6 +76,7 @@ A log of specific exceptions Prateek has approved to the "no dependencies, no lo
 
 - 2026-11-06: Approved for the Quote-to-Cash Bridge, Stage 1 only (docs/bridge/SPEC.md): add Vitest and ESLint as devDependencies inside `api/`, and update `api/package-lock.json` to match. Not installed yet as part of this setup session — Stage 1 will do the install.
 - 2026-11-10: Installed under the above approval, Stage 1: `vitest`, `@vitest/coverage-v8` (coverage reporting), `eslint`, `@eslint/js`, `typescript-eslint` (ESLint's flat-config TypeScript setup). All are devDependencies inside `api/`, with `api/package-lock.json` updated to match -- standard, necessary parts of the two approved tools, not a wider scope.
+- 2026-11-11: Approved for the Quote-to-Cash Bridge, Stage 2 only (docs/bridge/SPEC.md, "integration tests run against a real Postgres" and "a repository layer"): add `pg` as a `dependencies` entry and `@types/pg` as a `devDependencies` entry inside `api/`, and update `api/package-lock.json` to match. No migration-runner library added -- Stage 2 uses a small hand-written SQL-file runner instead, to keep this to the one client library the stage actually needs.
 
 ## Communication Standard
 
