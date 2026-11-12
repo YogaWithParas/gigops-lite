@@ -52,3 +52,10 @@ How I will verify: Stage 4's documented manual run against the dev ERPNext (per 
 - Owner branch publishing remains subject to your explicit approval; this run will not push it.
 
 - Secret scan: 195 unique committed blobs reachable from wip/erpnext-owner checked for private keys, provider tokens, credential assignments and password URLs. Three matches classified as two placeholders and one environment lookup; no confirmed secrets. Pattern-only scan, not a guarantee.
+- Closed the two outstanding Stage 1 MINOR items you asked for (decimalFromCents precision at large amounts; the ERPNext mapper fixture's inconsistent totals) -- see docs/bridge/PROGRESS.md for the detail and commit SHAs.
+- Not yet closed: the verification round-2 CHANGES REQUIRED fix (`6ba5120`, domain-level invariant enforcement on Deal/Invoice) was never confirmed by a round-3 blind review, which WORKFLOW.md's loop calls for after any MAJOR fix. Flagging this so it isn't lost -- Stage 2 was built on top of that fix as given.
+
+### Stage 2 defaults to review (2026-11-11)
+- Sync ledger id is a plain `serial` (int4), not `bigserial` -- node-postgres returns int8 columns as strings, which would force string ids on every caller for no benefit at this prototype's scale.
+- `bridge_settings` is a JSONB snapshot of Decision 5's four settings, with Stage 2's own defaults (same as MAPPING.md's table). Reading these from real environment variables and refusing to start the service on an invalid value is Stage 3/4's job, once there is an actual running service to refuse to start.
+- Migrations are a small hand-written `.sql`-file runner (api/src/bridge/ledger/migrate.ts), not a library -- kept to the one new dependency (`pg`) this stage actually needs. A Postgres advisory lock serialises concurrent runs.
